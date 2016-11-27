@@ -370,21 +370,18 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     System.out.println("looking for common doc");
     while(true) {
       int candidate = next(query._tokens, docid);
-      System.out.println("found candidate: " + candidate);
       if (candidate == -1) {
         _index.clear();
         return null;
       }
       boolean containAll = true;
       for (String phrase : qp._phrase) {
-        System.out.println("found phrase: " + phrase);
         if (!containsPhrase(phrase, candidate)) {
           containAll = false;
           break;
         }
       }
       if (containAll) {
-        System.out.println("found common doc: " + candidate);
         return _documents.get(candidate);
       }
       docid = candidate - 1;
@@ -438,19 +435,8 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     }
     cachedPIdx = searchNextDoc(cachedPIdx,pl.size() - 1, docid, pl);
     cachedPostingIdxes[idx] = cachedPIdx;
-    System.out.println("found next docid at idx: " + cachedPIdx);
-    return pl.get(cachedPIdx)._docid;
 
-    /*
-    if (cachedPtr > 0 && pl.get(cachedPtr-1)._docid > docid) {
-      cachedPtr = 0;
-    }
-    while (pl.get(cachedPtr)._docid <= docid) {
-      cachedPtr++;
-    }
-    cachedPostingIdxes[idx] = cachedPtr;
-    return pl.get(cachedPtr)._docid;
-    */
+    return pl.get(cachedPIdx)._docid;
   }
 
   private Term fetchInfo(int id) throws IOException{
@@ -541,12 +527,10 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   }
   
   private boolean containsPhrase(String phrase, int docid) {
-    System.out.println("looking for: " + phrase + " in doc: " + docid);
     int pos = -1;
     String[] phrases = phrase.split(" ");
     while (true) {
       boolean contains = true;
-      // List<Integer> positions = new ArrayList<>();
       int first = nextPos(phrases[0], docid, pos);
       for (int i = 1; i < phrases.length - 1; i++) {
         int next = nextPos(phrases[i], docid, first + i - 1);
@@ -561,32 +545,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       pos = first;
     }
   }
-      /*
-      for (String term : phrases) {
-        int p = nextPos(term, docid, pos);
-        if (p == -1) {
-          System.out.println("no position for word: " + term);
-          return false;
-        }
-        positions.add(p);
-      }
 
-      System.out.println("positions: " + Arrays.toString(positions.toArray()));
-      int p1 = positions.get(0);
-      for (int i = 1; i < positions.size(); i++) {
-        int p2 = positions.get(i);
-        if (p2 != p1 + 1) {
-          contains = false;
-          break;
-        }
-        p1 = p2;
-      }
-      if (contains) {
-        return true;
-      }
-      pos = Collections.min(positions);
-      System.out.println("current invalid pos: " + pos); */
-  
   private int nextPos(String token, int docid, int pos) {
     if (!_dictionary.containsKey(token)) {
       return -1;
@@ -598,23 +557,18 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       } catch(Exception e) {}
     }
     List<Posting> pl = _index.get(idx)._postingList;
-    System.out.println("posting list size: " + pl.size());
     Posting p = pl.get(cachedPostingIdxes[idx]);
     if (p == null) {
-      System.out.println("not found term: " + token + ", in doc: " + docid);
       return -1;
     }
     if (p._docid != docid) {
-      System.out.println("next position not in current docid: " + p._docid);
       p = searchPosting(0, pl.size() - 1, docid, pl);
     }
 
-    System.out.println("looking for occurrence in doc: " + docid);
     return searchNextOccurrence(0, p.getDocTermFreq() - 1, pos, p._occurrence);
   }
   
   private Posting searchPosting(int low, int high, int current, List<Posting> list) {
-    System.out.println("looking for post with id: " + current);
     if (list.get(0)._docid > current || list.get(list.size() - 1)._docid < current) {
       return null;
     }
@@ -642,7 +596,6 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   }
   
   private int searchNextOccurrence(int low, int high, int current, List<Integer> list) {
-    System.out.println("looking for occurrence from pos: " + current);
     if (list.get(0) > current) {
       return list.get(0);
     }
@@ -660,7 +613,6 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       }
     }
 
-    System.out.println("next valid pos: " + list.get(high));
     return list.get(high);
   }
 
