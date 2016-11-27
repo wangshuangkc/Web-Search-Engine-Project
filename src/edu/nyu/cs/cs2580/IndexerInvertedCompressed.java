@@ -1,7 +1,6 @@
 package edu.nyu.cs.cs2580;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +26,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   private Map<Integer, Term> _index = new HashMap<>();
   private Map<String, Float> _pageRanks;
   private Map<String, Integer> _numViews;
-  private int[] cachedPtrArray;
+  private int[] cachedPostingIdxes;
   
   public IndexerInvertedCompressed(Options options) {
     super(options);
@@ -84,7 +83,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     long ret = 0l;
     int docTotalTerms = 0;
     DocumentIndexed doc = new DocumentIndexed(did);
-    String baseName = convertToUTF8(file.getName());
+    String baseName = Helper.convertToUTF8(file.getName());
     doc.setUrl(WIKI_URL + baseName);
     doc.setPageRank(_pageRanks.get(baseName));
     doc.setNumViews(_numViews.get(baseName));
@@ -100,7 +99,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     scanners[1] = new Scanner(content).useDelimiter("\\s+");
     for (Scanner scanner: scanners) {
       while(scanner.hasNext()) {
-        String token = porterStem(scanner.next());
+        String token = Helper.porterStem(scanner.next());
         if(token == null || token.trim().isEmpty()) {
           continue;
         }
@@ -339,8 +338,8 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     System.out.println(Integer.toString(_numDocs) + " documents loaded " +
             "with " + Long.toString(_totalTermFrequency) + " terms!");
     
-    this.cachedPtrArray = new int[_dictionary.size()];
-    Arrays.fill(cachedPtrArray, 0);
+    this.cachedPostingIdxes = new int[_dictionary.size()];
+    Arrays.fill(cachedPostingIdxes, 0);
   }
   
   private void readDataIndex() throws IOException, ClassNotFoundException {
@@ -351,6 +350,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     _totalTermFrequency = (long) reader.readObject();
     _documents = (Vector<DocumentIndexed>) reader.readObject();
     _dictionary = (Map<String, Integer>) reader.readObject();
+    System.out.println("dict size: " + _dictionary.size());
     reader.close();
   }
   
@@ -364,6 +364,9 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
    */
   @Override
   public DocumentIndexed nextDoc(Query query, int docid) {
+    QueryPhrase qp = new QueryPhrase(query._query);
+    qp.processQuery();
+
     System.out.println("looking for common doc");
     while(true) {
       int candidate = next(query._tokens, docid);
@@ -373,20 +376,18 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
         return null;
       }
       boolean containAll = true;
-      for (String phrase : query._tokens) {
-        if (!phrase.contains(" ")) {
-          continue;
-        }
-        System.out.println("found phrase: "+ phrase);
+      for (String phrase : qp._phrase) {
+        System.out.println("found phrase: " + phrase);
         if (!containsPhrase(phrase, candidate)) {
           containAll = false;
           break;
         }
       }
       if (containAll) {
+        System.out.println("found common doc: " + candidate);
         return _documents.get(candidate);
       }
-      docid = candidate;
+      docid = candidate - 1;
     }
   }
   
@@ -416,8 +417,6 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       return -1;
     }
     int idx = _dictionary.get(token);
-    int cachedPtr = cachedPtrArray[idx];
-    List<Posting> pl;
     if (!_index.containsKey(idx)) {
       try {
         _index.put(idx, fetchInfo(idx));
@@ -425,24 +424,35 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
         e.printStackTrace();
       }
     }
-    pl = _index.get(idx)._postingList;
+    List<Posting> pl = _index.get(idx)._postingList;
     if (pl.get(pl.size() - 1)._docid <= docid) {
       return -1;
     }
     if (pl.get(0)._docid > docid) {
-      cachedPtrArray[idx] = 0;
+      cachedPostingIdxes[idx] = 0;
       return pl.get(0)._docid;
     }
-    
+    int cachedPIdx = cachedPostingIdxes[idx];
+    if (cachedPIdx < 0 || pl.get(cachedPIdx)._docid > docid) {
+      cachedPIdx = 0;
+    }
+    cachedPIdx = searchNextDoc(cachedPIdx,pl.size() - 1, docid, pl);
+    cachedPostingIdxes[idx] = cachedPIdx;
+    System.out.println("found next docid at idx: " + cachedPIdx);
+    return pl.get(cachedPIdx)._docid;
+
+    /*
     if (cachedPtr > 0 && pl.get(cachedPtr-1)._docid > docid) {
       cachedPtr = 0;
     }
-    while (pl.get(cachedPtr)._docid <= docid)
+    while (pl.get(cachedPtr)._docid <= docid) {
       cachedPtr++;
-    cachedPtrArray[idx] = cachedPtr;
+    }
+    cachedPostingIdxes[idx] = cachedPtr;
     return pl.get(cachedPtr)._docid;
+    */
   }
-  
+
   private Term fetchInfo(int id) throws IOException{
     long offset;
     long next_offset;
@@ -454,21 +464,21 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       offsetFile.seek(8L * (id - 1));
       offset = offsetFile.readLong();
     }
-    
+
     offsetFile.seek(8L * id);
     next_offset = offsetFile.readLong();
-    
+
     int size = (int)(next_offset - offset);
     String indexFileName = _options._indexPrefix + INDEX_FILE_NAME;
     RandomAccessFile indexFile = new RandomAccessFile(indexFileName,"r");
     indexFile.seek(offset);
-    
+
     List<Byte> byte_list = new ArrayList<>();
     for (int i = 0;i < size;i++) {
       byte_list.add(indexFile.readByte());
     }
     List<Integer> ints = convertToIntList(byte_list);
-    
+
     int corpusFreq = ints.get(1);
     int docFreq = ints.get(2);
     List<Posting> list = new ArrayList<>();
@@ -483,29 +493,25 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
       list.add(p);
     }
     Term info = new Term(corpusFreq, docFreq, list);
-//    Term info = new Term(0,0,null);
-//    info._corpusFreq = int_list.get(1);
-//    info._docFreq = int_list.get(2);
-//    info._postingList = new ArrayList<Posting>();
-//    int cur = 3;
-//    while (cur<int_list.size()) {
-//      int docid = int_list.get(cur);
-//      cur++;
-//      Posting p = new Posting(docid);
-//      int oc_count = int_list.get(cur);
-//      cur++;
-//      for (int i=0;i<oc_count;i++) {
-//        p._occurrence.add(int_list.get(cur));
-//        cur++;
-//      }
-//      info._postingList.add(p);
-//    }
-//
     offsetFile.close();
     indexFile.close();
+
     return info;
   }
-  
+
+  private int searchNextDoc(int low, int high, int current, List<Posting> list) {
+    while (high - low > 1) {
+      int mid = (high - low) / 2 + low;
+      if (list.get(mid)._docid <= current) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
+
+    return high;
+  }
+
   private List<Integer> convertToIntList(List<Byte> list) {
     List<Byte> byteList = new ArrayList<>();
     List<Integer> ret = new ArrayList<>();
@@ -535,25 +541,41 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   }
   
   private boolean containsPhrase(String phrase, int docid) {
-    System.out.println("phrase found: " + phrase);
+    System.out.println("looking for: " + phrase + " in doc: " + docid);
     int pos = -1;
     String[] phrases = phrase.split(" ");
     while (true) {
       boolean contains = true;
-      List<Integer> positions = new ArrayList<>();
-      
+      // List<Integer> positions = new ArrayList<>();
+      int first = nextPos(phrases[0], docid, pos);
+      for (int i = 1; i < phrases.length - 1; i++) {
+        int next = nextPos(phrases[i], docid, first + i - 1);
+        if (next != first + i) {
+          contains = false;
+          break;
+        }
+      }
+      if (contains) {
+        return true;
+      }
+      pos = first;
+    }
+  }
+      /*
       for (String term : phrases) {
         int p = nextPos(term, docid, pos);
         if (p == -1) {
+          System.out.println("no position for word: " + term);
           return false;
         }
         positions.add(p);
       }
-      
+
+      System.out.println("positions: " + Arrays.toString(positions.toArray()));
       int p1 = positions.get(0);
       for (int i = 1; i < positions.size(); i++) {
         int p2 = positions.get(i);
-        if ((p1 + 1) != p2) {
+        if (p2 != p1 + 1) {
           contains = false;
           break;
         }
@@ -563,90 +585,85 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
         return true;
       }
       pos = Collections.min(positions);
-    }
-  }
+      System.out.println("current invalid pos: " + pos); */
   
   private int nextPos(String token, int docid, int pos) {
-    if (_dictionary.containsKey(token)) {
+    if (!_dictionary.containsKey(token)) {
       return -1;
     }
     int idx = _dictionary.get(token);
     if (!_index.containsKey(idx)) {
       try {
         _index.put(idx, fetchInfo(idx));
-      }
-      catch(Exception e) {}
+      } catch(Exception e) {}
     }
     List<Posting> pl = _index.get(idx)._postingList;
-    Posting p = searchPosting(0, pl.size(), docid, pl);
+    System.out.println("posting list size: " + pl.size());
+    Posting p = pl.get(cachedPostingIdxes[idx]);
     if (p == null) {
+      System.out.println("not found term: " + token + ", in doc: " + docid);
       return -1;
     }
-    
-    return searchOccurrence(0, p.getDocTermFreq() - 1, pos, p._occurrence);
+    if (p._docid != docid) {
+      System.out.println("next position not in current docid: " + p._docid);
+      p = searchPosting(0, pl.size() - 1, docid, pl);
+    }
+
+    System.out.println("looking for occurrence in doc: " + docid);
+    return searchNextOccurrence(0, p.getDocTermFreq() - 1, pos, p._occurrence);
   }
   
   private Posting searchPosting(int low, int high, int current, List<Posting> list) {
+    System.out.println("looking for post with id: " + current);
+    if (list.get(0)._docid > current || list.get(list.size() - 1)._docid < current) {
+      return null;
+    }
+
     while (high - low > 1) {
       int mid = (high - low) / 2 + low;
       Posting p = list.get(mid);
-      if (p._docid <= current) {
+      if (p._docid == current) {
+        return p;
+      } else if (p._docid < current) {
         low = mid;
       } else {
         high = mid;
       }
     }
-    
+
     if (list.get(high)._docid == current) {
       return list.get(high);
     }
-    
+    if (list.get(low)._docid == current) {
+      return list.get(low);
+    }
+
     return null;
   }
   
-  private int searchOccurrence(int low, int high, int current, List<Integer> list) {
+  private int searchNextOccurrence(int low, int high, int current, List<Integer> list) {
+    System.out.println("looking for occurrence from pos: " + current);
+    if (list.get(0) > current) {
+      return list.get(0);
+    }
+    if (list.get(list.size() - 1) < current) {
+      return -1;
+    }
+
     while (high - low > 1) {
       int mid = (high - low) / 2 + low;
       int element = list.get(mid);
-      if (element == current) {
-        return element;
-      } else if (element < current) {
+      if (element <= current) {
         low = mid;
       } else {
         high = mid;
       }
     }
-    
-    if (list.get(high) == current) {
-      return list.get(high);
-    }
-    if (list.get(low) == current) {
-      return list.get(low);
-    }
-    
-    return -1;
+
+    System.out.println("next valid pos: " + list.get(high));
+    return list.get(high);
   }
-  /*
-  private Posting searchPosting(List<Posting> pl, int docid) {
-    for (int i = 0; i < pl.size(); i++) {
-      if (pl.get(i)._docid == docid) {
-        return pl.get(i);
-      }
-      if (pl.get(i)._docid > docid) {
-        return null;
-      }
-    }
-    return null;
-  }
-  
-  private int searchPosting(List<Integer> list, int pos) {
-    for (int i = 0;i < list.size();i++) {
-      if (list.get(i) > pos)
-        return list.get(i);
-    }
-    return -1;
-  }
-  */
+
   @Override
   public int corpusDocFrequencyByTerm(String term) {
     if (_dictionary.containsKey(term)) {
@@ -757,26 +774,8 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     }
   }
   
-  private String porterStem(String token) {
-    if (token == null | token.isEmpty()) {
-      return null;
-    }
-    
-    Stemmer stemmer = new Stemmer();
-    stemmer.add(token.toCharArray(), token.length());
-    stemmer.stem();
-    return stemmer.toString().toLowerCase();
-  }
-  
-  private static String convertToUTF8(String s) {
-    String ret = null;
-    try {
-      ret = new String(s.getBytes(Charset.defaultCharset()), "UTF-8");
-    } catch(Exception e) {}
-    return ret;
-  }
-  
   public String[] getUniqTerms() {
+
     return _dictionary.keySet().toArray(new String[_dictionary.size()]);
   }
 }

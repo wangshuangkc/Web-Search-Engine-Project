@@ -39,7 +39,7 @@ public class LogMinerNumviews extends LogMiner {
     File corpusDir = new File(corpusPath);
     for (File corpusDoc : corpusDir.listFiles()) {
       if (CorpusAnalyzer.isValidDocument(corpusDoc)) {
-        numViews.put(convertToUTF8(corpusDoc.getName()), 0);
+        numViews.put(Helper.convertToUTF8(corpusDoc.getName()), 0);
       }
     }
     
@@ -89,13 +89,5 @@ public class LogMinerNumviews extends LogMiner {
       System.out.println("Error: not index for num view");
       return null;
     }
-  }
-  
-  private static String convertToUTF8(String s) {
-    String ret = null;
-    try {
-      ret = new String(s.getBytes(Charset.defaultCharset()), "UTF-8");
-    } catch(Exception e) {}
-    return ret;
   }
 }

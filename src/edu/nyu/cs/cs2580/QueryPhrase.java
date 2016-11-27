@@ -9,6 +9,8 @@ import java.util.Vector;
  * recorded here and be used in indexing and ranking.
  */
 public class QueryPhrase extends Query {
+
+  public Vector<String> _phrase = new Vector<>();
   
   public QueryPhrase(String query) {
     super(query);
@@ -25,24 +27,30 @@ public class QueryPhrase extends Query {
     while (s.hasNext())
     {
       String current = s.next().trim();
+      String str = null;
       if(current.startsWith("\"")) {
-        sb.append(current.replace("\"", ""));
-        sb.append(" ");
+        str = Helper.porterStem(current.replace("\"", ""));
+        sb.append(str + " ");
       } else if(current.endsWith("\"")){
+        str = Helper.porterStem(current.replace("\"", ""));
         sb.append(current.replace("\"", ""));
-        _tokens.add(sb.toString());
+        _phrase.add(sb.toString());
         sb = new StringBuffer();
+      } else if (sb.length() > 0){
+        str = Helper.porterStem(current);
+        sb.append(" " + current + " ");
       } else {
-        if(sb.length() == 0) {
-          _tokens.add(current);
-        } else {
-          sb.append(" ");
-          sb.append(current);
-          sb.append(" ");
-        }
+        str = current;
       }
+      _tokens.add(str);
     }
     System.out.println(_tokens.toString());
+    System.out.println(_phrase.toString());
     s.close();
+  }
+
+  public static void main(String[] args) {
+    QueryPhrase qp = new QueryPhrase("\"new york\" film");
+    qp.processQuery();
   }
 }
