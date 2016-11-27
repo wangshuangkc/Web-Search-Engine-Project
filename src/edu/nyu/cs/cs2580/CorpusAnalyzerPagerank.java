@@ -12,8 +12,8 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  * @CS2580: Implement this class for HW3.
  */
 public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
-  Map<String, ArrayList<String>> graph = new HashMap<>();
-  Map<String, Integer>  dict = new HashMap<>();
+  private Map<String, ArrayList<String>> graph = new HashMap<>();
+  private Map<String, Integer>  dict = new HashMap<>();
   final float LAMBDA = 0.9f;
   final int T = 2;
 
@@ -53,16 +53,16 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
       if(fileName.startsWith(".")){
         continue;
       }
-      dict.put(convertToUTF8(fileName), index);//make the dictionary
+      dict.put(Helper.convertToUTF8(fileName), index);//make the dictionary
       index++;
-      graph.put(convertToUTF8(fileName), new ArrayList<String>());
+      graph.put(Helper.convertToUTF8(fileName), new ArrayList<String>());
       HeuristicLinkExtractor hle = new HeuristicLinkExtractor(file);
       String nextLink = hle.getNextInCorpusLinkTarget();
       while(nextLink != null){
-        if(allFileNames.contains(convertToUTF8(nextLink))){
-          ArrayList<String> temp = graph.get(convertToUTF8(fileName));
-          temp.add(convertToUTF8(nextLink));
-          graph.put(convertToUTF8(fileName), temp);
+        if(allFileNames.contains(Helper.convertToUTF8(nextLink))){
+          ArrayList<String> temp = graph.get(Helper.convertToUTF8(fileName));
+          temp.add(Helper.convertToUTF8(nextLink));
+          graph.put(Helper.convertToUTF8(fileName), temp);
         }
         nextLink = hle.getNextInCorpusLinkTarget();
       }
@@ -83,7 +83,7 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
       if(fileName.startsWith(".")){
         continue;
       }
-      result.add(convertToUTF8(fileName));
+      result.add(Helper.convertToUTF8(fileName));
     }
     return result;
   }
@@ -284,13 +284,5 @@ public class CorpusAnalyzerPagerank extends CorpusAnalyzer {
       System.out.println("No Object found");
     }
     return null;
-  }
-
-  private static String convertToUTF8(String s) {
-    String ret = null;
-    try {
-      ret = new String(s.getBytes(Charset.defaultCharset()), "UTF-8");
-    } catch(Exception e) {}
-    return ret;
   }
 }

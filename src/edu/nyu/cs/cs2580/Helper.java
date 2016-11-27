@@ -1,29 +1,45 @@
 package edu.nyu.cs.cs2580;
 
-/**
- * Stemmer, implementing the Porter Stemming Algorithm
- *
- * The Stemmer class transforms a word into its root form.  The input
- * word can be provided a character at time (by calling add()), or at once
- * by calling one of the various stem(something) methods.
- *
- * See http://www.tartarus.org/~martin/PorterStemmer
- */
+import java.nio.charset.Charset;
 
-public class Stemmer {
+/**
+ * Created by kc on 11/26/16.
+ */
+public class Helper {
+  public static String porterStem(String token) {
+    if (token == null | token.isEmpty()) {
+      return null;
+    }
+
+    Stemmer stemmer = new Stemmer();
+    stemmer.add(token.toCharArray(), token.length());
+    stemmer.stem();
+    return stemmer.toString().toLowerCase();
+  }
+
+  public static String convertToUTF8(String s) {
+    String result = null;
+    try {
+      result = new String(s.getBytes(Charset.defaultCharset()), "UTF-8");
+    } catch(Exception e) {}
+    return result;
+  }
+}
+
+class Stemmer {
   private char[] b;
   private int i;
   private int i_end;
   private int j;
   private int k;
   private static final int INC = 50;
-  
+
   public Stemmer() {
     b = new char[INC];
     i = 0;
     i_end = 0;
   }
-  
+
   /**
    * Add a character to the word being stemmed.  When you are finished
    * adding characters, you can call stem(void) to stem the word.
@@ -36,7 +52,7 @@ public class Stemmer {
     }
     b[i++] = ch;
   }
-  
+
   /** Adds wLen characters to the word being stemmed contained in a portion
    * of a char[] array. This is like repeated calls of add(char ch), but
    * faster.
@@ -51,7 +67,7 @@ public class Stemmer {
       b[i++] = w[c];
     }
   }
-  
+
   /**
    * After a word has been stemmed, it can be retrieved by toString(),
    * or a reference to the internal buffer can be retrieved by getResultBuffer
@@ -60,7 +76,7 @@ public class Stemmer {
   public String toString() {
     return new String(b, 0, i_end);
   }
-  
+
   private final boolean cons(int i) {
     switch (b[i]) {
       case 'a':
@@ -104,7 +120,7 @@ public class Stemmer {
       i++;
     }
   }
-  
+
   private final boolean vowelinstem() {
     int i;
     for (i = 0; i <= j; i++) {
@@ -114,16 +130,16 @@ public class Stemmer {
     }
     return false;
   }
-  
+
   private final boolean doublec(int j) {
     if (j < 1) {
       return false;
     }
-    
+
     if (b[j] != b[j-1]) {
       return false;
     }
-    
+
     return cons(j);
   }
 
@@ -131,32 +147,32 @@ public class Stemmer {
     if (i < 2 || !cons(i) || cons(i-1) || !cons(i-2)) {
       return false;
     }
-    
+
     int ch = b[i];
     if (ch == 'w' || ch == 'x' || ch == 'y') {
       return false;
     }
-    
+
     return true;
   }
-  
+
   private final boolean ends(String s) {
     int l = s.length();
     int o = k-l+1;
     if (o < 0) {
       return false;
     }
-    
+
     for (int i = 0; i < l; i++) {
       if (b[o+i] != s.charAt(i)) {
         return false;
       }
     }
     j = k-l;
-    
+
     return true;
   }
-  
+
   private final void setto(String s) {
     int l = s.length();
     int o = j+1;
@@ -165,13 +181,13 @@ public class Stemmer {
     }
     k = j+l;
   }
-  
+
   private final void r(String s) {
     if (m() > 0) {
       setto(s);
     }
   }
-  
+
   private final void step1()
   {  if (b[k] == 's')
   {  if (ends("sses")) k -= 2; else
@@ -193,7 +209,7 @@ public class Stemmer {
       else if (m() == 1 && cvc(k)) setto("e");
     }
   }
-  
+
   /** Stem the word placed into the Stemmer buffer through calls to add().
    * Returns true if the stemming process resulted in a word different
    * from the input.  You can retrieve the result with
@@ -204,7 +220,7 @@ public class Stemmer {
     if (k > 1) {
       step1();
     }
-    
+
     i_end = k+1; i = 0;
   }
 }
