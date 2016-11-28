@@ -190,10 +190,13 @@ class QueryHandler implements HttpHandler {
           // nothing
       }
     } else {
+      System.out.println("start prf");
       Vector<ScoredDocument> scoredDocs =
           ranker.runQuery(processedQuery, cgiArgs._numDocs);
       PRF prf = new PRF(scoredDocs, cgiArgs._numTerms, _indexer);
+      System.out.println("start construct response");
       prf.constructResponse(response);
+      System.out.println(response.toString());
     }
     respondWithMsg(exchange, response.toString());
     System.out.println("Finished query: " + cgiArgs._query);

@@ -20,6 +20,8 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   private static final String DATA_FILE_NAME = "/data.idx";
   private static final String INDEX_FILE_NAME = "/compressed.idx";
   private static final String OFFSET_FILE_NAME = "/compressed_offset.idx";
+  private static final String PRF_FILE_NAME = "/prfmap.idx";
+  private static final String PRF_OFFSET_FILE_NAME = "/prfoffset.idx";
   
   private Map<String, Integer> _dictionary = new HashMap<>();
   private Vector<DocumentIndexed> _documents = new Vector<>();
@@ -41,9 +43,13 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     _pageRanks = (HashMap<String, Float>)analyzer.load();
     LogMiner miner = LogMiner.Factory.getLogMinerByOption(SearchEngine.OPTIONS);
     _numViews = (HashMap<String, Integer>)miner.load();
-    
+
+    String prfOffsetFile = _options._indexPrefix + PRF_OFFSET_FILE_NAME;
+    RandomAccessFile prfOffset = new RandomAccessFile(prfOffsetFile, "rw");
+    long offset = 0l;
+
     int tmpIdxCnt = 0;
-    
+
     try {
       System.out.println("Construct index from: " + _options._corpusPrefix);
       File corpusDir = new File(_options._corpusPrefix);
@@ -52,7 +58,9 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
           continue;
         }
   
-        processDocument(file);
+        long size = processDocument(file);
+        offset += size;
+        prfOffset.writeLong(offset);
         
         if (_numDocs % MAX_DOC_IDX == 0) {
           writePartialIndices(tmpIdxCnt++);
@@ -61,7 +69,8 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    
+    prfOffset.close();
+
     if (_numDocs % MAX_DOC_IDX != 0) {
       writePartialIndices(tmpIdxCnt++);
     }
@@ -76,18 +85,21 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
             start));
   }
   
-  private void processDocument(File file) throws IOException{
-    
+  private long processDocument(File file) throws IOException{
     int did = _numDocs++;
     int pos = 0;
-    long ret = 0l;
+    long result = 0l;
     int docTotalTerms = 0;
     DocumentIndexed doc = new DocumentIndexed(did);
     String baseName = Helper.convertToUTF8(file.getName());
     doc.setUrl(WIKI_URL + baseName);
     doc.setPageRank(_pageRanks.get(baseName));
     doc.setNumViews(_numViews.get(baseName));
-    
+
+    HashMap<String,Integer> prfMap = new HashMap<>();
+    String prfFile = _options._indexPrefix + PRF_FILE_NAME;
+    BufferedOutputStream prfMapWriter = new BufferedOutputStream(new FileOutputStream(prfFile,true));
+
     org.jsoup.nodes.Document parseDoc = Jsoup.parse(file, "UTF-8");
     String title = parseDoc.title().replace(WIKI_STOPWORD, "");
     doc.setTitle(title);
@@ -103,6 +115,13 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
         if(token == null || token.trim().isEmpty()) {
           continue;
         }
+
+        if (!prfMap.containsKey(token)) {
+          prfMap.put(token, 1);
+        } else {
+          prfMap.put(token, prfMap.get(token) + 1);
+        }
+
         _totalTermFrequency++;
         docTotalTerms++;
         
@@ -127,6 +146,17 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
     
     doc.setDocTotalTerms(docTotalTerms);
     _documents.add(doc);
+
+    for (Map.Entry<String, Integer> e: prfMap.entrySet()) {
+      String temp = e.getKey() + "\t" + e.getValue() + "\t";
+      byte[] b = temp.getBytes("UTF-8");
+      result += b.length;
+      prfMapWriter.write(b);
+    }
+    prfMap.clear();
+    prfMapWriter.close();
+
+    return result;
   }
   
   private void writePartialIndices(int idx) throws IOException {
@@ -727,6 +757,7 @@ public class IndexerInvertedCompressed extends Indexer implements Serializable {
   }
   
   public String[] getUniqTerms() {
+    System.out.println("getting uniq terms");
 
     return _dictionary.keySet().toArray(new String[_dictionary.size()]);
   }

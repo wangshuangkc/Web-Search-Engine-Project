@@ -15,13 +15,13 @@ public class Bhattacharyya {
   private String _qsimOut;
   
   public Bhattacharyya(String prfOutPath, String qsimOutPath) throws IOException {
-    _prfOutPath = prfOutPath;
+    _prfOutPath = _cwd + "/" + prfOutPath;
     _qsimOut = _cwd + "/" + qsimOutPath;
   }
   
   private Map<String, Float> termPrfMap(String queryPrfOut) throws IOException {
     Map<String, Float> termPrf = new HashMap<>();
-    BufferedReader br = new BufferedReader(new FileReader(queryPrfOut));
+    BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(_cwd + "/" + queryPrfOut), "UTF-8"));
     String line = null;
     while ((line = br.readLine()) != null) {
       String[] entry = line.split("\t");
@@ -83,8 +83,7 @@ public class Bhattacharyya {
   }
   
   public static void main(String[] args) throws IOException {
-    Bhattacharyya bha = new Bhattacharyya(args[0], args[1]);
-    System.out.println("Store result to file: " + args[1]);
+    Bhattacharyya bha = new Bhattacharyya("prf.tsv", "qsim.tsv");
     bha.outputCoeff();
   }
 }

@@ -9,20 +9,21 @@ import java.util.*;
 /**
  * Created by kc on 11/18/16.
  */
-public class PRF {
+public class PRF implements Serializable {
   private int _numTerms;
   private Vector<ScoredDocument> _scoredDocs;
   private final Indexer _indexer;
   private Map<String, Float> termProbability = new HashMap<String, Float>();
   private Map<String, Integer> termFrequency = new HashMap<String, Integer>();
+  private static final Set<String> STOP_WORDS = Helper.getStopWords();
 
-  private static final String STOP_WORD_URL =
-      "http://www.ai.mit.edu/projects/jmlr/papers/volume5/lewis04a/a11-smart-stop-list/english.stop";
+
 
   public PRF(Vector<ScoredDocument> scoredDocs, int numTerms, Indexer indexer) {
     _numTerms = numTerms;
     _scoredDocs = scoredDocs;
     _indexer = indexer;
+    System.out.println("construct prf");
   }
   
   /**
@@ -51,22 +52,69 @@ public class PRF {
     return probability;
   }
 
+  private void getUniqTerms(Document doc) throws IOException {
+    totalWordCount += ((DocumentIndexed)doc).getDocTotalTerms();
+    String offsetFileName = _indexer._options._indexPrefix + "/prfoffset.idx";
+    RandomAccessFile offsetFile = new RandomAccessFile(offsetFileName, "r");
+    String prfMapFileName = _indexer._options._indexPrefix + "/prfmap.idx";
+    RandomAccessFile prfMapFile = new RandomAccessFile(prfMapFileName, "r");
+
+    System.out.println("start load files");
+    long offset;
+    long nextOffset;
+    int did = doc._docid;
+    System.out.println("start load file: " + did);
+    if (did == 0) {
+      offset = 0;
+    } else {
+      offsetFile.seek(8L * (did - 1));
+      offset = offsetFile.readLong();
+    }
+
+    offsetFile.seek(8L * did);
+    nextOffset = offsetFile.readLong();
+    System.out.println("get offset: " + offset + "-" + nextOffset);
+
+    int size = (int)(nextOffset - offset);
+    System.out.println("byte size: " + size);
+    prfMapFile.seek(offset);
+    byte[] temp = new byte[size];
+    for (int i = 0; i < size; i++) {
+      temp[i] = prfMapFile.readByte();
+    }
+    System.out.println("get temp: " + temp.length);
+    String record = new String(temp, "UTF-8");
+    Scanner s = new Scanner(record).useDelimiter("\t");
+    while (s.hasNext()) {
+      String token = s.next();
+      System.out.println("get token: " + token);
+      if (!s.hasNext()) {
+        System.out.println("not has next");
+        break;
+      }
+      int frequent = 0;
+      try {
+        frequent = Integer.parseInt(s.next());
+      } catch (NumberFormatException e) {
+        continue;
+      }
+      if (!STOP_WORDS.contains(token) && !termFrequency.containsKey(token)) {
+        termFrequency.put(token, frequent);
+      } else if (!STOP_WORDS.contains(token) && termFrequency.containsKey(token)) {
+        termFrequency.put(token, termFrequency.get(token) + frequent);
+      }
+    }
+    s.close();
+    offsetFile.close();
+    prfMapFile.close();
+  }
+
   public void constructResponse(StringBuffer response) throws IOException {
     int temp = 0;
     int sum = 0;
-    Set<String> stopWords = getStopWords(STOP_WORD_URL);
-    for(String term: ((IndexerInvertedCompressed)_indexer).getUniqTerms()) {
-      if (stopWords.contains(term)) {
-        continue;
-      }
-      for(ScoredDocument document : _scoredDocs){
-          int docid = ((DocumentIndexed)document.getDoc())._docid;
-          temp=((IndexerInvertedCompressed)_indexer).documentTermFrequency(term, docid);
-          sum += temp;
-      }
-      if(sum>0){
-        termFrequency.put(term, sum);
-      }
+
+    for(ScoredDocument document : _scoredDocs) {
+      getUniqTerms(document.getDoc());
     }
 
     //Calculate probablity of each term in the map, update map.
@@ -86,38 +134,14 @@ public class PRF {
     
     for (int i = 0; i <_numTerms ; i++) {
       normalizedProbability = termProbability.get(keys.get(i)) / totalProbability;
-      response.append(keys.get(i) + "\t" + normalizedProbability+"\n");
+      response.append(keys.get(i) + "\t" + normalizedProbability + "\n");
     }
-    
-    String outFile = "data/output/prfOutput.tsv";
+
+    String outFile = "data/prfOutput.tsv";
     File output = new File(outFile);
     FileWriter writer = new FileWriter(output);
     writer.write(response.toString());
     writer.close();
-  }
-
-  private Set<String> getStopWords(String stopwordUrl) {
-    Set<String> result = new HashSet<>();
-
-    try
-    {
-      URL url = new URL(stopwordUrl);
-      URLConnection urlConnection = url.openConnection();
-      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-
-      String line;
-      while ((line = bufferedReader.readLine()) != null)
-      {
-        result.add(Helper.porterStem(line));
-      }
-      bufferedReader.close();
-    }
-    catch(Exception e)
-    {
-      System.out.println("Error: failed to retrieve stopwords from: " + stopwordUrl);
-    }
-
-    return result;
   }
 
   public Map<String, Float> sortMapByValue(Map<String, Float> map) {

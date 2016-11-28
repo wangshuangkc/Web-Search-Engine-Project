@@ -45,12 +45,15 @@ public class RankerComprehensive extends Ranker {
       
       results = new Vector<>();
       int cnt = numResults;
+      System.out.println("scored docs all: " + scoredDocs.size());
       for (ScoredDocument sDoc : scoredDocs) {
-        results.add(sDoc);
-        if (cnt-- == 0) {
+        if (cnt == 0) {
           break;
         }
+        results.add(sDoc);
+        cnt--;
       }
+      System.out.println("scored docs: " + results.size());
     } catch (Exception e) {
       System.out.println("Error: ranking failed");
       e.printStackTrace();

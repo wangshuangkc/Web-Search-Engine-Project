@@ -1,20 +1,30 @@
 package edu.nyu.cs.cs2580;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by kc on 11/26/16.
  */
 public class Helper {
+  private static final String STOP_WORD = "data/english.stop";
+
   public static String porterStem(String token) {
     if (token == null | token.isEmpty()) {
       return null;
     }
 
+    token = token.replaceAll("^\\p{Punct}+|\\p{Punct}+$", "");
     Stemmer stemmer = new Stemmer();
     stemmer.add(token.toCharArray(), token.length());
     stemmer.stem();
-    return stemmer.toString().toLowerCase();
+
+    return stemmer.toString().trim().toLowerCase();
   }
 
   public static String convertToUTF8(String s) {
@@ -23,6 +33,27 @@ public class Helper {
       result = new String(s.getBytes(Charset.defaultCharset()), "UTF-8");
     } catch(Exception e) {}
     return result;
+  }
+
+  public static Set<String> getStopWords() {
+    Set<String> result = new HashSet<>();
+    try {
+      BufferedReader reader = new BufferedReader(new FileReader(STOP_WORD));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        result.add(Helper.porterStem(line));
+      }
+      reader.close();
+    } catch (IOException e) {
+      System.out.println("Warning: invalid stop word file: " + STOP_WORD);
+    }
+
+    return result;
+  }
+
+  public static void main(String[] args) {
+    String s = "(\"navigation\"),a";
+    System.out.println(porterStem(s));
   }
 }
 
@@ -40,10 +71,6 @@ class Stemmer {
     i_end = 0;
   }
 
-  /**
-   * Add a character to the word being stemmed.  When you are finished
-   * adding characters, you can call stem(void) to stem the word.
-   */
   public void add(char ch) {
     if (i == b.length) {
       char[] new_b = new char[i+INC];
@@ -53,10 +80,6 @@ class Stemmer {
     b[i++] = ch;
   }
 
-  /** Adds wLen characters to the word being stemmed contained in a portion
-   * of a char[] array. This is like repeated calls of add(char ch), but
-   * faster.
-   */
   public void add(char[] w, int wLen) {
     if (i+wLen >= b.length) {
       char[] new_b = new char[i+wLen+INC];
@@ -68,11 +91,6 @@ class Stemmer {
     }
   }
 
-  /**
-   * After a word has been stemmed, it can be retrieved by toString(),
-   * or a reference to the internal buffer can be retrieved by getResultBuffer
-   * and getResultLength (which is generally more efficient.)
-   */
   public String toString() {
     return new String(b, 0, i_end);
   }
@@ -210,11 +228,6 @@ class Stemmer {
     }
   }
 
-  /** Stem the word placed into the Stemmer buffer through calls to add().
-   * Returns true if the stemming process resulted in a word different
-   * from the input.  You can retrieve the result with
-   * getResultLength()/getResultBuffer() or toString().
-   */
   public void stem() {
     k = i - 1;
     if (k > 1) {
