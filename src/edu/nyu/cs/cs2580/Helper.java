@@ -13,6 +13,7 @@ import java.util.Set;
  */
 public class Helper {
   private static final String STOP_WORD = "data/english.stop";
+  private static final boolean verbose = true;
 
   public static String porterStem(String token) {
     if (token == null | token.isEmpty()) {
@@ -51,9 +52,10 @@ public class Helper {
     return result;
   }
 
-  public static void main(String[] args) {
-    String s = "(\"navigation\"),a";
-    System.out.println(porterStem(s));
+  public static void printVerbose(String s) {
+    if (verbose) {
+      System.out.println(s);
+    }
   }
 }
 

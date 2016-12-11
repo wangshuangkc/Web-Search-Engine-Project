@@ -13,28 +13,6 @@ import com.sun.net.httpserver.HttpServer;
 
 /**
  * This is the main entry class for the Search Engine.
- *
- * Usage (must be running from the parent directory of src):
- *  0) Compiling
- *   javac src/edu/nyu/cs/cs2580/*.java
- *  1) Mining
- *   java -cp src edu.nyu.cs.cs2580.SearchEngine \
- *     --mode=mining --options=conf/engine.conf
- *  2) Indexing
- *   java -cp src edu.nyu.cs.cs2580.SearchEngine \
- *     --mode=index --options=conf/engine.conf
- *  3) Serving
- *   java -cp src -Xmx256m edu.nyu.cs.cs2580.SearchEngine \
- *     --mode=serve --port=[port] --options=conf/engine.conf
- *  4) Searching
- *   http://localhost:[port]/search?query=web&ranker=fullscan
- *
- * @CS2580:
- * You must ensure your program runs with maximum heap memory size -Xmx512m.
- * You must use a port number 258XX, where XX is your group number.
- *
- * Students do not need to change this class except to add server options.
- *
  * @author congyu
  * @author fdiaz
  */
@@ -45,35 +23,18 @@ public class SearchEngine {
    * For simplicity, all options are publicly accessible.
    */
   public static class Options {
-    // The parent path where the corpus resides.
-    // HW1: We have only one file, corpus.csv.
-    // HW2/HW3: We have a partial Wikipedia dump.
     public String _corpusPrefix = null;
-
-    // The parent path where the log date reside.
-    // HW1/HW2: n/a
-    // HW3: We have a partial Wikipedia visit log dump.
     public String _logPrefix = null;
-
-    // The parent path where the constructed index resides.
-    // HW1: n/a
-    // HW2/HW3: This is where the index is built into and loaded from.
     public String _indexPrefix = null;
-
-    // The specific Indexer to be used.
     public String _indexerType = null;
-
-    // The specific CorpusAnalyzer to be used.
     public String _corpusAnalyzerType = null;
-
-    // The specific LogMiner to be used.
     public String _logMinerType = null;
-
-    // Additional group specific configuration can be added below.
+    public String _webPrefix = null;
+    public String _rankerType = null;
 
     /**
      * Constructor for options.
-     * @param optionFile where all the options must reside
+     * @param optionsFile where all the options must reside
      * @throws IOException
      */
     public Options(String optionsFile) throws IOException {
@@ -98,8 +59,10 @@ public class SearchEngine {
       // Populate global options.
       _corpusPrefix = options.get("corpus_prefix");
       Check(_corpusPrefix != null, "Missing option: corpus_prefix!");
+
       _logPrefix = options.get("log_prefix");
       Check(_logPrefix != null, "Missing option: log_prefix!");
+
       _indexPrefix = options.get("index_prefix");
       Check(_indexPrefix != null, "Missing option: index_prefix!");
 
@@ -113,6 +76,14 @@ public class SearchEngine {
 
       _logMinerType = options.get("log_miner_type");
       Check(_logMinerType != null, "Missing option: log_miner_type!");
+
+      _webPrefix = options.get("web_prefix");
+      Check(_webPrefix != null, "Missing option: web_prefix!");
+
+      _rankerType = options.get("ranker_type");
+      Check(_rankerType != null, "Missing option: ranker_type!");
+
+      // todo remove unnecessary options
     }
   }
   public static Options OPTIONS = null;
@@ -135,6 +106,7 @@ public class SearchEngine {
     MINING,
     INDEX,
     SERVE,
+    // todo add the mode for crawl or embed crawling into indexing
   };
   public static Mode MODE = Mode.NONE;
 
@@ -197,6 +169,7 @@ public class SearchEngine {
         "Indexer " + SearchEngine.OPTIONS._indexerType + " not found!");
     indexer.loadIndex();
     QueryHandler handler = new QueryHandler(SearchEngine.OPTIONS, indexer);
+    // todo construct ranker from the options
 
     // Establish the serving environment
     InetSocketAddress addr = new InetSocketAddress(SearchEngine.PORT);
