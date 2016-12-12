@@ -33,12 +33,12 @@ public class TedCrawler implements Serializable {
     String webDir = _options._webPrefix;
     File webDirFile = new File(webDir);
     if (!webDirFile.exists()) {
-      webDirFile.mkdir();
+      webDirFile.mkdirs();
     }
 
     List<String> urls = new ArrayList<>();
     for (String lang : LANGUAGES) {
-      System.out.println("Download page for " + lang);
+      Helper.printVerbose("Download page for " + lang);
       for (String s : urlsForLang(lang)) {
         if (!urls.contains(s)) {
           urls.add(s);
