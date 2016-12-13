@@ -1,3 +1,4 @@
+package edu.nyu.cs.cs2580;
 
 import java.util.List;
 import java.util.Properties;
@@ -20,7 +21,7 @@ import edu.stanford.nlp.ling.CoreLabel;
  */
 
 public class SegChinese {
-    private static final String basedir = System.getProperty("SegChinese", "/Users/WeisenZhao/Downloads/stanford-segmenter-2015-12-09/data");
+    private static final String basedir = System.getProperty("SegChinese", "/data");
     private CRFClassifier<CoreLabel> segmenter;
 
     public SegChinese(){
