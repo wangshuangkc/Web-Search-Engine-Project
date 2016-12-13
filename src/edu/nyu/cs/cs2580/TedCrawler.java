@@ -13,7 +13,9 @@ import org.jsoup.select.Elements;
 
 
 /**
- * Created by kc on 12/10/16.
+ * Crawler object for getting video urls
+ *
+ * @author Shuang
  */
 public class TedCrawler implements Serializable {
   private Options _options = null;
@@ -28,7 +30,14 @@ public class TedCrawler implements Serializable {
     _options = options;
   }
 
-  public void graspUrls() throws IOException, ParseException {
+  /**
+   * Crawls the links on ted.com/talks page, and stores into a json file
+   * With caching last crawled url, only add urls that were not crawled for freshing
+   *
+   * @throws IOException
+   * @throws ParseException
+   */
+  public String graspUrls() throws IOException, ParseException {
     System.out.println("Grasp urls from: " + BASE_URL);
     String webDir = _options._webPrefix;
     File webDirFile = new File(webDir);
@@ -57,6 +66,8 @@ public class TedCrawler implements Serializable {
 
     writeLastCached();
     System.out.println("Url Crawling completed: " + urls.size() + " urls stored to " + urlFile);
+
+    return urlFile;
   }
 
   private List<String> urlsForLang(String lang) throws IOException, ParseException {

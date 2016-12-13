@@ -13,9 +13,6 @@ public class DocumentIndexed extends Document {
     super(docid);
   }
   
-  // todo may not allow to use this
-  private Map<Integer, Integer> _uniqueTerms = new HashMap<>();
-  
   private int _docTotalTerms = 0;
   
   public void setDocTotalTerms(int docTotalTerms) {
