@@ -15,7 +15,7 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  * implement four additional concrete Rankers.
  *
  * In HW2: students will pick a favorite concrete Ranker other than
- * {@link RankerPhrase}, and re-implement it using the more efficient
+ * {@link Ranker}, and re-implement it using the more efficient
  * concrete Indexers.
  *
  * 2013-02-16: The instructor's code went through substantial refactoring
@@ -42,6 +42,11 @@ public abstract class Ranker {
   protected Ranker(Options options, CgiArguments arguments, Indexer indexer) {
     _options = options;
     _arguments = arguments;
+    _indexer = indexer;
+  }
+
+  protected Ranker(Options options, Indexer indexer) {
+    _options = options;
     _indexer = indexer;
   }
 

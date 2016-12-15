@@ -1,5 +1,5 @@
 package edu.nyu.cs.cs2580;
-
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
@@ -16,7 +16,7 @@ public class RankerComprehensive extends Ranker {
   private double _lambda = 0.5;
 
   public RankerComprehensive(Options options,
-      CgiArguments arguments, Indexer indexer) {
+       CgiArguments arguments, Indexer indexer) {
     super(options, arguments, indexer);
     System.out.println("Using Ranker: " + this.getClass().getSimpleName());
   }
@@ -24,16 +24,16 @@ public class RankerComprehensive extends Ranker {
   @Override
   public Vector<ScoredDocument> runQuery(Query query, int numResults) {
     Vector<ScoredDocument> results = null;
-    QueryPhrase qp = new QueryPhrase(query._query);
-    qp.processQuery();
-    
+    Helper.printVerbose("start querying");
     try {
+      QueryChinese qc = new QueryChinese(query._query, ((IndexerInverted) _indexer)._segmentor);
+      qc.processQuery();
       Vector<ScoredDocument> scoredDocs = new Vector<>();
-      DocumentIndexed doc = (DocumentIndexed) _indexer.nextDoc(qp, -1);
-      //System.out.println("find potential doc: " + doc._docid);
+      VideoDocumentIndexed doc = (VideoDocumentIndexed) _indexer.nextDoc(qc, -1);
+      Helper.printVerbose("find potential doc: " + doc._docid);
       while (doc != null) {
-        scoredDocs.add(scoreDocument(qp, doc._docid));
-        doc = (DocumentIndexed) _indexer.nextDoc(qp, doc._docid);
+        scoredDocs.add(scoreDocument(qc, doc._docid));
+        doc = (VideoDocumentIndexed) _indexer.nextDoc(qc, doc._docid);
       }
   
       Collections.sort(scoredDocs, new Comparator<ScoredDocument>() {
@@ -45,28 +45,28 @@ public class RankerComprehensive extends Ranker {
       
       results = new Vector<>();
       int cnt = numResults;
-      System.out.println("scored docs all: " + scoredDocs.size());
+      Helper.printVerbose("scored docs all: " + scoredDocs.size());
       for (ScoredDocument sDoc : scoredDocs) {
-        if (cnt == 0) {
-          break;
-        }
+//        if (cnt == 0) {
+//          break;
+//        }
         results.add(sDoc);
         cnt--;
       }
-      System.out.println("scored docs: " + results.size());
+      Helper.printVerbose("scored docs: " + results.size());
     } catch (Exception e) {
-      System.out.println("Error: ranking failed");
+      Helper.printVerbose("Error: ranking failed");
       e.printStackTrace();
     }
     
     return results;
   }
   
-  private ScoredDocument scoreDocument(QueryPhrase query, int docid) {
-    DocumentIndexed doc = (DocumentIndexed)_indexer.getDoc(docid);
+  private ScoredDocument scoreDocument(Query query, int docid) {
+    VideoDocumentIndexed doc = (VideoDocumentIndexed)_indexer.getDoc(docid);
     long docTotalTerm = doc.getDocTotalTerms();
     if (doc == null) {
-      System.out.println("No document with Id: " + docid);
+      Helper.printVerbose("No document with Id: " + docid);
       return null;
     }
     
@@ -78,15 +78,32 @@ public class RankerComprehensive extends Ranker {
           _lambda * _indexer.corpusTermFrequency(token) / _indexer._totalTermFrequency);
     }
     relevance = (float)Math.pow(10, relevance);
-    System.out.println("relevance: " + relevance);
+    if (relevance == 0) {
+      return null;
+    }
 
-    int numview = doc.getNumViews();
+    Helper.printVerbose("relevance: " + relevance);
+
+    int numview = doc.getNumViews() / Helper.postPeriod(doc.getPostMonths());
     
-    double score = 0.5 * relevance + 0.5 * Math.log(numview + 1);
+    double score = 0.75 * relevance + 0.25 * Math.log(numview + 1);
     
     return new ScoredDocument(doc, score);
   }
-  
+
+  public static void main(String[] args) throws IOException, ClassNotFoundException {
+    Options op = new Options("conf/engine.conf");
+    CgiArguments arg = new CgiArguments("query=权利%20恐怖");
+    Indexer idx = new IndexerInverted(op);
+    idx.loadIndex();
+    RankerComprehensive ranker = new RankerComprehensive(op, arg, idx);
+    Vector<ScoredDocument> sdoc = ranker.runQuery(new Query(arg._query), 0);
+    for (ScoredDocument d : sdoc) {
+      Document doc = d.getDoc();
+      Helper.printVerbose(doc.getUrl());
+    }
+  }
+
   public double getLambda() {
     return _lambda;
   }

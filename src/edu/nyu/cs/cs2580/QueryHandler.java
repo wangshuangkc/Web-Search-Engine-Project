@@ -46,7 +46,7 @@ class QueryHandler implements HttpHandler {
       LINEAR,
       COMPREHENSIVE,
     }
-    public RankerType _rankerType = RankerType.NONE;
+    public RankerType _rankerType = RankerType.COMPREHENSIVE;
     
     // The output format.
     public enum OutputFormat {
@@ -122,7 +122,7 @@ class QueryHandler implements HttpHandler {
 
   private void constructTextOutput(
       final Vector<ScoredDocument> docs, StringBuffer response) {
-    response.append("DocId\tTitle\tScore\tPageRank\tNumviews\n");
+    response.append("DocId\tTitle\tScore\n");
     for (ScoredDocument doc : docs) {
       response.append(response.length() > 0 ? "\n" : "");
       response.append(doc.asTextResult());
