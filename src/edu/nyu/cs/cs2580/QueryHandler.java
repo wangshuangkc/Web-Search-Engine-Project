@@ -1,16 +1,14 @@
 package edu.nyu.cs.cs2580;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Vector;
+
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import edu.nyu.cs.cs2580.SearchEngine.Options;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Vector;
+import edu.nyu.cs.cs2580.SearchEngine.Options;
 
 /**
  * Handles each incoming query, students do not need to change this class except
@@ -123,23 +121,13 @@ class QueryHandler implements HttpHandler {
   }
 
   private void constructTextOutput(
-
       final Vector<ScoredDocument> docs, StringBuffer response) {
     response.append("DocId\tTitle\tScore\n");
-
     for (ScoredDocument doc : docs) {
       response.append(response.length() > 0 ? "\n" : "");
       response.append(doc.asTextResult());
     }
     response.append(response.length() > 0 ? "\n" : "");
-
-    String rankdedResults = _options._indexPrefix + "/" + "rankdedResults.tsv";
-    try {
-    BufferedWriter writer = new BufferedWriter(new FileWriter(rankdedResults,true));
-      for (ScoredDocument scoredDoc: docs) {
-        writer.write(processedQuery._query+""+(scoredDoc.getDoc()).getTitle() + "\n");
-      }
-    } catch (IOException e){}
   }
 
   public void handle(HttpExchange exchange) throws IOException {
@@ -193,7 +181,7 @@ class QueryHandler implements HttpHandler {
               ranker.runQuery(processedQuery, cgiArgs._numResults);
       switch (cgiArgs._outputFormat) {
         case TEXT:
-          constructTextOutput(scoredDocs, response, processedQuery);
+          constructTextOutput(scoredDocs, response);
           break;
         case HTML:
           // @CS2580: Plug in your HTML output
