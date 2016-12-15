@@ -20,7 +20,6 @@ public class IndexerInverted extends Indexer implements Serializable {
   private static final String PRF_FILE_NAME = "/prfmap.idx";
   private static final String PRF_OFFSET_FILE_NAME = "/prfoffset.idx";
   private static final String DES_FILE_NAME = "/vdes.idx";
-  private static final String URL_FILE_NAME = "/cached_urls.json";
 
   private Map<String, Integer> _dictionary = new HashMap<>();
   private Vector<VideoDocumentIndexed> _documents = new Vector<>();
@@ -28,10 +27,9 @@ public class IndexerInverted extends Indexer implements Serializable {
   private int[] cachedPostingIdxes;
   private static ChineseSegmentor segmentor;
 
-  public IndexerInverted(Options options) throws IOException, ClassNotFoundException {
+  public IndexerInverted(Options options) {
     super(options);
     checkDir();
-    loadIndex();
     System.out.println("Using Indexer: " + this.getClass().getSimpleName());
   }
 
@@ -56,7 +54,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     int tmpIdxCnt = 0;
 
     try {
-      String urlLists = _options._webPrefix + URL_FILE_NAME;
+      String urlLists = runCrawler();
       File cachedFile = new File(urlLists);
       if (cachedFile.exists()) {
         JSONParser parser = new JSONParser();
@@ -94,11 +92,12 @@ public class IndexerInverted extends Indexer implements Serializable {
     saveDataIndex();
   }
 
-  public long processDocument(String url, JSONObject videoData) throws IOException{
-    if (videoData == null) {
-      return 0l;
-    }
+  private String runCrawler() throws IOException, ParseException {
+    TedCrawler crawler = new TedCrawler(_options);
+    return crawler.graspUrls();
+  }
 
+  private long processDocument(String url, JSONObject videoData) throws IOException{
     int did = _numDocs++;
     long result = 0l;
     int docTotalTerms = 0;
@@ -116,8 +115,8 @@ public class IndexerInverted extends Indexer implements Serializable {
     String prfFile = _options._indexPrefix + PRF_FILE_NAME;
     BufferedOutputStream prfMapWriter = new BufferedOutputStream(new FileOutputStream(prfFile,true));
 
-    docTotalTerms += makeIndex(doc.getTitle(), "[\\\\p{Punct}\\\\s]+", -2, prfMap, did);
-    docTotalTerms += makeIndex(description, "[\\\\p{Punct}\\\\s]+", -1, prfMap, did);
+    docTotalTerms += makeIndex(doc.getTitle(), "\\s+", -2, prfMap, did);
+    docTotalTerms += makeIndex(description, "\\s+", -1, prfMap, did);
     docTotalTerms += makeIndexTran(transcript, "\n", prfMap, did);
 
     doc.setDocTotalTerms(docTotalTerms);
@@ -145,6 +144,8 @@ public class IndexerInverted extends Indexer implements Serializable {
         if (token == null || token.trim().isEmpty()) {
           continue;
         }
+
+        System.out.println("word: " + token);
         if (!prfMap.containsKey(token)) {
           prfMap.put(token, 1);
         } else {
@@ -183,7 +184,7 @@ public class IndexerInverted extends Indexer implements Serializable {
       String[] paras = tran.split("\t");
       String timeTag = paras[0];
       String tokens = paras[1];
-      docTotalTerms += makeIndex(tokens, "[\\\\p{Punct}\\\\s]+", Helper.convertToTime(timeTag), prfMap, did);
+      docTotalTerms += makeIndex(tokens, "[^\\w']+", Helper.convertToTime(timeTag), prfMap, did);
     }
 
     return docTotalTerms;
@@ -404,11 +405,6 @@ public class IndexerInverted extends Indexer implements Serializable {
 
   private void readDataIndex() throws IOException, ClassNotFoundException {
     String dataFile = _options._indexPrefix + DATA_FILE_NAME;
-    File file = new File(dataFile);
-    if (!file.exists()) {
-      return;
-    }
-
     System.out.println("Load global data from: " + dataFile);
     ObjectInputStream reader = new ObjectInputStream(new FileInputStream(dataFile));
     _numDocs = (int) reader.readObject();
@@ -793,7 +789,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     }
   }
 
-  public static void main(String[] args) throws IOException, ClassNotFoundException {
+  public static void main(String[] args) throws IOException {
     Options op = new Options("conf/engine.conf");
     IndexerInverted indexer = new IndexerInverted(op);
     indexer.constructIndex();
