@@ -79,11 +79,10 @@ public class RankerComprehensive extends Ranker {
     }
     relevance = (float)Math.pow(10, relevance);
     System.out.println("relevance: " + relevance);
-    
-    float pageRank = doc.getPageRank();
+
     int numview = doc.getNumViews();
     
-    double score = 0.5 * relevance + 0.25 * pageRank + 0.25 * Math.log(numview + 1);
+    double score = 0.5 * relevance + 0.5 * Math.log(numview + 1);
     
     return new ScoredDocument(doc, score);
   }
