@@ -21,7 +21,7 @@ public class TedCrawler implements Serializable {
   private Options _options = null;
   private static final String BASE_URL = "https://www.ted.com";
   private static final String[] LANGUAGES = {"zh-cn"};
-  private long totalPage = 65;
+  private long totalPage = 4;
   private static final String CACHED_LAST = "/cached_last.json";
   private static final String CACHED_URLS = "/cached_urls.json";
   private Map<String, String> lastCachedUrl = new HashMap<>();
@@ -75,7 +75,7 @@ public class TedCrawler implements Serializable {
     readLastCached();
 
     boolean reachCachedLast = false;
-    for (int i = 1; i <= totalPage && !reachCachedLast; i++) {
+    for (int i = 2; i <= totalPage && !reachCachedLast; i++) {
       Helper.printVerbose("Download page # " + i + " ...");
       Document doc = Jsoup.connect(BASE_URL + "/talks?language=" + lang + "&page=" + i).get();
       if (doc.toString().contains("Sorry. We couldn't find a talk quite like that.")) {
