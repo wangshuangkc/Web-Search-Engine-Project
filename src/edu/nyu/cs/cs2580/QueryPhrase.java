@@ -40,7 +40,7 @@ public class QueryPhrase extends Query {
         str = Helper.porterStem(current);
         sb.append(" " + current + " ");
       } else {
-        str = current;
+        str = Helper.porterStem(current);
       }
       _tokens.add(str);
     }

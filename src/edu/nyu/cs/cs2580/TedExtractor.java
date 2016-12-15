@@ -16,7 +16,10 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Created by kc on 12/11/16.
+ * Extracts video info and transcripts, and stores in a json object
+ * Indexer can tokenize the data, and index the page
+ *
+ * @author Shuang
  */
 public class TedExtractor {
   private final String _url;
@@ -25,15 +28,22 @@ public class TedExtractor {
   private static final String TITLE_SELECTOR = ".player-hero__title__content";
   private static final String NAME_SELECTOR = ".talk-speaker__name";
   private static final String SHARED_SELECTOR = "#sharing-count";
+  private static final String TIME_SELECTOR_META = ".meta__item";
+  private static final String TIME_SELECTOR = ".meta__val";
   private static final String DEC_SELECTOR = ".talk-description";
   private static final String TRAN_SELECTOR = "p.talk-transcript__para";
-  private static final String TIME_SELECTOR = "data.talk-transcript__para__time";
+  private static final String TRAN_TIME_SELECTOR = "data.talk-transcript__para__time";
   private static final String PARA_SELECTOR = "span.talk-transcript__para__text";
 
   public TedExtractor(String url) {
     _url = url;
   }
 
+  /**
+   * Extracts video title, speaker name, total shared, and descriptions from the
+   * @return json object storing video data
+   * @throws IOException
+   */
   public JSONObject extract() throws IOException {
     JSONObject obj = new JSONObject();
 
@@ -44,6 +54,7 @@ public class TedExtractor {
     obj.put("description", extractDescription(info));
 
     Document trans = Jsoup.connect(_url + TRAN_URL).get();
+    obj.put("time", extractTime(trans));
     obj.put("transcript", extractTranscript(trans));
 
     return obj;
@@ -57,10 +68,18 @@ public class TedExtractor {
     return doc.select(NAME_SELECTOR).text();
   }
 
-  private long extractNumShared(Document doc) {
+  private String extractNumShared(Document doc) {
     String num = doc.select(SHARED_SELECTOR).text();
     String[] n = num.split(" ");
-    return Long.valueOf(n[0].replace(",", ""));
+
+    return n[0].replace(",", "");
+  }
+
+  private String extractTime(Document doc) {
+    Elements time = doc.select(TIME_SELECTOR_META);
+    String t = time.select(TIME_SELECTOR).text();
+
+    return t;
   }
 
   private String extractDescription(Document doc) {
@@ -71,7 +90,7 @@ public class TedExtractor {
     StringBuffer sb = new StringBuffer();
     Elements trans = doc.select(TRAN_SELECTOR);
     for (Element tran : trans) {
-      String timeTag = tran.select(TIME_SELECTOR).text();
+      String timeTag = tran.select(TRAN_TIME_SELECTOR).text();
       String para = tran.select(PARA_SELECTOR).text();
       sb.append(timeTag.replaceAll(" ", "") + "\t");
       sb.append(para.replaceAll(" ", "") + "\n");
@@ -95,7 +114,7 @@ public class TedExtractor {
         cnt++;
         String vurl = (String)i.next();
         TedExtractor tex = new TedExtractor(base_url + vurl);
-        FileWriter writer = new FileWriter("data/tran/tran" + cnt + ".json");
+        FileWriter writer = new FileWriter("data/tran" + cnt + ".json");
         writer.write(tex.extract().toString());
         writer.close();
         Helper.printVerbose("Parse url #" + cnt);
