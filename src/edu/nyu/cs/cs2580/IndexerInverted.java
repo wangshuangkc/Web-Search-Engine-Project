@@ -20,6 +20,7 @@ public class IndexerInverted extends Indexer implements Serializable {
   private static final String PRF_FILE_NAME = "/prfmap.idx";
   private static final String PRF_OFFSET_FILE_NAME = "/prfoffset.idx";
   private static final String DES_FILE_NAME = "/vdes.idx";
+  private static final String URL_FILE_NAME = "/cached_urls.json";
 
   private Map<String, Integer> _dictionary = new HashMap<>();
   private Vector<VideoDocumentIndexed> _documents = new Vector<>();
@@ -30,6 +31,7 @@ public class IndexerInverted extends Indexer implements Serializable {
   public IndexerInverted(Options options) {
     super(options);
     checkDir();
+    //todo load index to get the previous settings
     System.out.println("Using Indexer: " + this.getClass().getSimpleName());
   }
 
@@ -54,7 +56,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     int tmpIdxCnt = 0;
 
     try {
-      String urlLists = runCrawler();
+      String urlLists = _options._webPrefix + URL_FILE_NAME;
       File cachedFile = new File(urlLists);
       if (cachedFile.exists()) {
         JSONParser parser = new JSONParser();
@@ -97,7 +99,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     return crawler.graspUrls();
   }
 
-  private long processDocument(String url, JSONObject videoData) throws IOException{
+  public long processDocument(String url, JSONObject videoData) throws IOException{
     int did = _numDocs++;
     long result = 0l;
     int docTotalTerms = 0;
@@ -115,8 +117,8 @@ public class IndexerInverted extends Indexer implements Serializable {
     String prfFile = _options._indexPrefix + PRF_FILE_NAME;
     BufferedOutputStream prfMapWriter = new BufferedOutputStream(new FileOutputStream(prfFile,true));
 
-    docTotalTerms += makeIndex(doc.getTitle(), "\\s+", -2, prfMap, did);
-    docTotalTerms += makeIndex(description, "\\s+", -1, prfMap, did);
+    docTotalTerms += makeIndex(doc.getTitle(), "[\\\\p{Punct}\\\\s]+", -2, prfMap, did);
+    docTotalTerms += makeIndex(description, "[\\\\p{Punct}\\\\s]+", -1, prfMap, did);
     docTotalTerms += makeIndexTran(transcript, "\n", prfMap, did);
 
     doc.setDocTotalTerms(docTotalTerms);
@@ -184,7 +186,7 @@ public class IndexerInverted extends Indexer implements Serializable {
       String[] paras = tran.split("\t");
       String timeTag = paras[0];
       String tokens = paras[1];
-      docTotalTerms += makeIndex(tokens, "[^\\w']+", Helper.convertToTime(timeTag), prfMap, did);
+      docTotalTerms += makeIndex(tokens, "[\\\\p{Punct}\\\\s]+", Helper.convertToTime(timeTag), prfMap, did);
     }
 
     return docTotalTerms;

@@ -34,7 +34,7 @@ public class ChineseSegmentor {
 
   public static void main(String[] args) {
     ChineseSegmentor seg = new ChineseSegmentor();
-    String s = "中国经济";
+    String s = "你们的数据可以帮助终结饥饿问题";
     Helper.printVerbose(Arrays.toString(seg.parse(s).toArray()));
   }
 }
