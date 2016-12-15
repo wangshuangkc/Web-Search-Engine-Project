@@ -28,12 +28,16 @@ public class IndexerInverted extends Indexer implements Serializable {
   private int[] cachedPostingIdxes;
   public static ChineseSegmentor _segmentor;
 
-  public IndexerInverted(Options options) throws IOException, ClassNotFoundException {
+  public IndexerInverted(Options options) {
     super(options);
-    checkDir();
-    readDataIndex();
-    if (_segmentor == null) {
-      _segmentor = new ChineseSegmentor();
+    try {
+      checkDir();
+      readDataIndex();
+      if (_segmentor == null) {
+        _segmentor = new ChineseSegmentor();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
     }
     System.out.println("Using Indexer: " + this.getClass().getSimpleName());
   }

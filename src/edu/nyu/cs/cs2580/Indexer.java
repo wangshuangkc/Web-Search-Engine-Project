@@ -145,7 +145,7 @@ public abstract class Indexer {
       } else if (options._indexerType.equals("inverted-occurrence")) {
         return new IndexerInvertedOccurrence(options);
       } else if (options._indexerType.equals("inverted-compressed")) {
-        return new IndexerInvertedCompressed(options);
+        return new IndexerInverted(options);
       }
       return null;
     }

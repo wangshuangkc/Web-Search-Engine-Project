@@ -31,7 +31,6 @@ public class SearchEngine {
     public String _corpusAnalyzerType = null;
     public String _logMinerType = null;
     public String _webPrefix = null;
-    public String _rankerType = null;
 
     /**
      * Constructor for options.
@@ -80,11 +79,6 @@ public class SearchEngine {
 
       _webPrefix = options.get("web_prefix");
       Check(_webPrefix != null, "Missing option: web_prefix!");
-
-      _rankerType = options.get("ranker_type");
-      Check(_rankerType != null, "Missing option: ranker_type!");
-
-      // todo remove unnecessary options
     }
   }
   public static Options OPTIONS = null;
@@ -176,9 +170,7 @@ public class SearchEngine {
     Check(indexer != null,
         "Indexer " + SearchEngine.OPTIONS._indexerType + " not found!");
     indexer.loadIndex();
-    Ranker ranker = new RankerComprehensive(SearchEngine.OPTIONS, indexer);
-    Check(ranker != null, "Ranker " + SearchEngine.OPTIONS._rankerType + " not found!");
-    QueryHandler handler = new QueryHandler(SearchEngine.OPTIONS, indexer, ranker);
+    QueryHandler handler = new QueryHandler(SearchEngine.OPTIONS, indexer);
 
     // Establish the serving environment
     InetSocketAddress addr = new InetSocketAddress(SearchEngine.PORT);

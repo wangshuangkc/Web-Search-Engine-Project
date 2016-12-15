@@ -46,7 +46,7 @@ class QueryHandler implements HttpHandler {
       LINEAR,
       COMPREHENSIVE,
     }
-    public RankerType _rankerType = RankerType.NONE;
+    public RankerType _rankerType = RankerType.COMPREHENSIVE;
     
     // The output format.
     public enum OutputFormat {
@@ -105,15 +105,9 @@ class QueryHandler implements HttpHandler {
   // we are not worried about thread-safety here, the Indexer class must take
   // care of thread-safety.
   private Indexer _indexer;
-  private Ranker _ranker;
 
   public QueryHandler(Options options, Indexer indexer) {
     _indexer = indexer;
-  }
-
-  public QueryHandler(Options options, Indexer indexer, Ranker ranker) {
-    _indexer = indexer;
-    _ranker = ranker;
   }
 
   private void respondWithMsg(HttpExchange exchange, final String message)
@@ -128,7 +122,7 @@ class QueryHandler implements HttpHandler {
 
   private void constructTextOutput(
       final Vector<ScoredDocument> docs, StringBuffer response) {
-    response.append("DocId\tTitle\tScore\tPageRank\tNumviews\n");
+    response.append("DocId\tTitle\tScore\n");
     for (ScoredDocument doc : docs) {
       response.append(response.length() > 0 ? "\n" : "");
       response.append(doc.asTextResult());
@@ -168,8 +162,9 @@ class QueryHandler implements HttpHandler {
     }
     
     // Create the ranker.
-    // Ranker ranker = Ranker.Factory.getRankerByArguments(cgiArgs, SearchEngine.OPTIONS, _indexer);
-    if (_ranker == null) {
+    Ranker ranker = Ranker.Factory.getRankerByArguments(
+        cgiArgs, SearchEngine.OPTIONS, _indexer);
+    if (ranker == null) {
       respondWithMsg(exchange,
           "Ranker " + cgiArgs._rankerType.toString() + " is not valid!");
     }
@@ -183,7 +178,7 @@ class QueryHandler implements HttpHandler {
     // Ranking.
     if (uriPath.equals("/search")) {
       Vector<ScoredDocument> scoredDocs =
-              _ranker.runQuery(processedQuery, cgiArgs._numResults);
+              ranker.runQuery(processedQuery, cgiArgs._numResults);
       switch (cgiArgs._outputFormat) {
         case TEXT:
           constructTextOutput(scoredDocs, response);
@@ -197,7 +192,7 @@ class QueryHandler implements HttpHandler {
     } else {
       System.out.println("start prf");
       Vector<ScoredDocument> scoredDocs =
-          _ranker.runQuery(processedQuery, cgiArgs._numDocs);
+          ranker.runQuery(processedQuery, cgiArgs._numDocs);
       PRF prf = new PRF(scoredDocs, cgiArgs._numTerms, _indexer);
       System.out.println("start construct response");
       prf.constructResponse(response);

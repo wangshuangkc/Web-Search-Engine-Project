@@ -1,5 +1,4 @@
 package edu.nyu.cs.cs2580;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,18 +15,19 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
 public class RankerComprehensive extends Ranker {
   private double _lambda = 0.5;
 
-  public RankerComprehensive(Options options, Indexer indexer) {
-    super(options, indexer);
+  public RankerComprehensive(Options options,
+       CgiArguments arguments, Indexer indexer) {
+    super(options, arguments, indexer);
     System.out.println("Using Ranker: " + this.getClass().getSimpleName());
   }
 
   @Override
   public Vector<ScoredDocument> runQuery(Query query, int numResults) {
     Vector<ScoredDocument> results = null;
-    QueryChinese qc = new QueryChinese(query._query, ((IndexerInverted)_indexer)._segmentor);
-    qc.processQuery();
-    
+    Helper.printVerbose("start querying");
     try {
+      QueryChinese qc = new QueryChinese(query._query, ((IndexerInverted) _indexer)._segmentor);
+      qc.processQuery();
       Vector<ScoredDocument> scoredDocs = new Vector<>();
       VideoDocumentIndexed doc = (VideoDocumentIndexed) _indexer.nextDoc(qc, -1);
       Helper.printVerbose("find potential doc: " + doc._docid);
@@ -96,7 +96,7 @@ public class RankerComprehensive extends Ranker {
     CgiArguments arg = new CgiArguments("query=权利%20恐怖");
     Indexer idx = new IndexerInverted(op);
     idx.loadIndex();
-    RankerComprehensive ranker = new RankerComprehensive(op, idx);
+    RankerComprehensive ranker = new RankerComprehensive(op, arg, idx);
     Vector<ScoredDocument> sdoc = ranker.runQuery(new Query(arg._query), 0);
     for (ScoredDocument d : sdoc) {
       Document doc = d.getDoc();
