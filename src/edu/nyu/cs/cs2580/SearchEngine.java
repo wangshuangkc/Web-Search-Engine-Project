@@ -127,7 +127,7 @@ public class SearchEngine {
       }
     }
     Check(MODE == Mode.SERVE || MODE == Mode.INDEX || MODE == Mode.MINING || MODE == Mode.CRAWL,
-        "Must provide a valid mode: serve or index or mining!");
+        "Must provide a valid mode: serve or index or mining or crawl!");
     Check(MODE != Mode.SERVE || PORT != -1,
         "Must provide a valid port number (258XX) in serve mode!");
     Check(OPTIONS != null, "Must provide options!");
@@ -188,6 +188,7 @@ public class SearchEngine {
       switch (SearchEngine.MODE) {
       case CRAWL:
         startCrawling();
+        break;
       case MINING:
         startMining();
         break;
