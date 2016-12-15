@@ -47,15 +47,19 @@ public class TedExtractor {
   public JSONObject extract() throws IOException {
     JSONObject obj = new JSONObject();
 
-    Document info = Jsoup.connect(_url + INFO_URL).get();
-    obj.put("title", extractTitle(info));
-    obj.put("speaker", extractSpeaker(info));
-    obj.put("shared", extractNumShared(info));
-    obj.put("description", extractDescription(info));
+    try {
+      Document info = Jsoup.connect(_url + INFO_URL).timeout(5000).get();
+      obj.put("title", extractTitle(info));
+      obj.put("speaker", extractSpeaker(info));
+      obj.put("shared", extractNumShared(info));
+      obj.put("description", extractDescription(info));
 
-    Document trans = Jsoup.connect(_url + TRAN_URL).get();
-    obj.put("time", extractTime(trans));
-    obj.put("transcript", extractTranscript(trans));
+      Document trans = Jsoup.connect(_url + TRAN_URL).timeout(5000).get();
+      obj.put("time", extractTime(trans));
+      obj.put("transcript", extractTranscript(trans));
+    } catch (Exception e) {
+      return null;
+    }
 
     return obj;
   }

@@ -13,23 +13,32 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
 public class IndexerInverted extends Indexer implements Serializable {
 
   private static final long serialVersionUID = 1077111905740085031L;
-  private static final int MAX_DOC_IDX = 500;
+  private static final int MAX_DOC_IDX = 500; //todo make sure this is 500
   private static final String DATA_FILE_NAME = "/data.idx";
-  private static final String INDEX_FILE_NAME = "/compressed.idx";
+  private static final String INDEX_FILE_NAME = "/occurrence.idx";
+  private static final String COMPRESSED_FILE_NAME = "/compressed.idx";
   private static final String OFFSET_FILE_NAME = "/compressed_offset.idx";
   private static final String PRF_FILE_NAME = "/prfmap.idx";
   private static final String PRF_OFFSET_FILE_NAME = "/prfoffset.idx";
-  private static final String DES_FILE_NAME = "/vdes.idx";
+  private static final String URL_FILE_NAME = "/cached_urls.json";
 
   private Map<String, Integer> _dictionary = new HashMap<>();
   private Vector<VideoDocumentIndexed> _documents = new Vector<>();
   private Map<Integer, Term> _index = new HashMap<>();
   private int[] cachedPostingIdxes;
-  private static ChineseSegmentor segmentor;
+  public static ChineseSegmentor _segmentor;
 
   public IndexerInverted(Options options) {
     super(options);
-    checkDir();
+    try {
+      checkDir();
+      readDataIndex();
+      if (_segmentor == null) {
+        _segmentor = new ChineseSegmentor();
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
     System.out.println("Using Indexer: " + this.getClass().getSimpleName());
   }
 
@@ -43,9 +52,7 @@ public class IndexerInverted extends Indexer implements Serializable {
 
   @Override
   public void constructIndex() throws IOException {
-    if (segmentor == null) {
-      segmentor = new ChineseSegmentor();
-    }
+
 
     String prfOffsetFile = _options._indexPrefix + PRF_OFFSET_FILE_NAME;
     RandomAccessFile prfOffset = new RandomAccessFile(prfOffsetFile, "rw");
@@ -54,7 +61,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     int tmpIdxCnt = 0;
 
     try {
-      String urlLists = runCrawler();
+      String urlLists = _options._webPrefix + URL_FILE_NAME;
       File cachedFile = new File(urlLists);
       if (cachedFile.exists()) {
         JSONParser parser = new JSONParser();
@@ -92,20 +99,19 @@ public class IndexerInverted extends Indexer implements Serializable {
     saveDataIndex();
   }
 
-  private String runCrawler() throws IOException, ParseException {
-    TedCrawler crawler = new TedCrawler(_options);
-    return crawler.graspUrls();
-  }
-
   private long processDocument(String url, JSONObject videoData) throws IOException{
+    if (videoData == null) {
+      return 0;
+    }
     int did = _numDocs++;
+    Helper.printVerbose("Index page #" + did);
     long result = 0l;
     int docTotalTerms = 0;
     VideoDocumentIndexed doc = new VideoDocumentIndexed(did);
     doc.setUrl(url);
     doc.setTitle(videoData.get("title").toString());
     doc.setNumViews(Integer.valueOf(videoData.get("shared").toString()));
-    doc.setPostMonths(Helper.postPeriod(videoData.get("time").toString()));
+    doc.setPostMonths(videoData.get("time").toString());
     doc.setSpeaker(videoData.get("speaker").toString());
 
     String description = videoData.get("description").toString();
@@ -115,8 +121,8 @@ public class IndexerInverted extends Indexer implements Serializable {
     String prfFile = _options._indexPrefix + PRF_FILE_NAME;
     BufferedOutputStream prfMapWriter = new BufferedOutputStream(new FileOutputStream(prfFile,true));
 
-    docTotalTerms += makeIndex(doc.getTitle(), "\\s+", -2, prfMap, did);
-    docTotalTerms += makeIndex(description, "\\s+", -1, prfMap, did);
+    docTotalTerms += makeIndex(doc.getTitle(), "\\s+", 0, prfMap, did);
+    docTotalTerms += makeIndex(description, "\\s+", 0, prfMap, did);
     docTotalTerms += makeIndexTran(transcript, "\n", prfMap, did);
 
     doc.setDocTotalTerms(docTotalTerms);
@@ -139,13 +145,12 @@ public class IndexerInverted extends Indexer implements Serializable {
     Scanner scanner = new Scanner(tokens).useDelimiter(delimiter);
     while(scanner.hasNext()) {
       String sentence = scanner.next();
-      List<String> words = segmentor.parse(sentence);
+      List<String> words = _segmentor.parse(sentence);
       for (String token : words) {
         if (token == null || token.trim().isEmpty()) {
           continue;
         }
 
-        System.out.println("word: " + token);
         if (!prfMap.containsKey(token)) {
           prfMap.put(token, 1);
         } else {
@@ -184,7 +189,7 @@ public class IndexerInverted extends Indexer implements Serializable {
       String[] paras = tran.split("\t");
       String timeTag = paras[0];
       String tokens = paras[1];
-      docTotalTerms += makeIndex(tokens, "[^\\w']+", Helper.convertToTime(timeTag), prfMap, did);
+      docTotalTerms += makeIndex(tokens, "\\s+", Helper.convertToTime(timeTag), prfMap, did);
     }
 
     return docTotalTerms;
@@ -222,16 +227,27 @@ public class IndexerInverted extends Indexer implements Serializable {
     return sb.toString();
   }
 
-  private void mergePartialIndex(int idxCnt) throws IOException{
+  private void mergePartialIndex(int cnt) throws IOException{
+    int idxCnt = cnt;
+    String fullIdx = _options._indexPrefix + INDEX_FILE_NAME;
+    File rename = new File(fullIdx);
+    if (rename.exists()) {
+      String newFile = _options._indexPrefix + "/" + idxCnt++ + ".idx";
+      rename.renameTo(new File(newFile));
+      Helper.printVerbose("Rename previous index to " + newFile);
+    }
+    System.out.println("Merge partial indices into: " + fullIdx);
+
     BufferedReader[] readers= new BufferedReader[idxCnt];
     for (int i = 0; i < idxCnt; i++) {
       String partialFile = _options._indexPrefix + "/" + i + ".idx";
       readers[i] = new BufferedReader(new FileReader(partialFile));
     }
 
-    String fullIdx = _options._indexPrefix + INDEX_FILE_NAME;
-    System.out.println("Merge partial indices into: " + fullIdx);
-    DataOutputStream writer = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(fullIdx)));
+    BufferedWriter writer = new BufferedWriter(new FileWriter(fullIdx));
+    String comIdx = _options._indexPrefix + COMPRESSED_FILE_NAME;
+    System.out.println("Merge partial indices into: " + comIdx);
+    DataOutputStream comwriter = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(comIdx)));
 
     String offsetFileName = _options._indexPrefix + OFFSET_FILE_NAME;
     RandomAccessFile offsetFile = new RandomAccessFile(offsetFileName, "rw");
@@ -281,7 +297,8 @@ public class IndexerInverted extends Indexer implements Serializable {
           toMove[i] = true;
         }
       }
-      long size = writeToIndex(min_id, toMerge, writer);
+      writeToIndex(min_id, toMerge, writer);
+      long size = writeToIndex(min_id, toMerge, comwriter);
       offset += size;
       offsetFile.writeLong(offset);
     }
@@ -298,9 +315,24 @@ public class IndexerInverted extends Indexer implements Serializable {
     }
   }
 
-  private long writeToIndex(int termId, List<Term> terms, DataOutputStream writer) throws
-      IOException{
+  private void writeToIndex(int termId, List<Term> terms, BufferedWriter writer) throws IOException {
+    int corpusFreq = 0;
+    int docFreq = 0;
+    List<Posting> plist = new ArrayList<>();
+    for (Term t: terms) {
+      corpusFreq += t.getCorpusFreq();
+      docFreq += t.getDocFreq();
+      plist.addAll(t._postingList);
+    }
 
+    writer.write(termId + " " + corpusFreq + " " + docFreq + " ");
+    for (Posting posting : plist) {
+      writer.write(posting._docid + "," + printList(posting._occurrence) + " ");
+    }
+    writer.newLine();
+  }
+
+  private long writeToIndex(int termId, List<Term> terms, DataOutputStream writer) throws IOException{
     long result = 0l;
     int corpusFreq = 0;
     int docFreq = 0;
@@ -405,6 +437,11 @@ public class IndexerInverted extends Indexer implements Serializable {
 
   private void readDataIndex() throws IOException, ClassNotFoundException {
     String dataFile = _options._indexPrefix + DATA_FILE_NAME;
+    File file = new File(dataFile);
+    if (!file.exists()) {
+      return;
+    }
+
     System.out.println("Load global data from: " + dataFile);
     ObjectInputStream reader = new ObjectInputStream(new FileInputStream(dataFile));
     _numDocs = (int) reader.readObject();
@@ -425,10 +462,7 @@ public class IndexerInverted extends Indexer implements Serializable {
    */
   @Override
   public VideoDocumentIndexed nextDoc(Query query, int docid) {
-    QueryPhrase qp = new QueryPhrase(query._query);
-    qp.processQuery();
-
-    System.out.println("looking for common doc");
+    Helper.printVerbose("looking for common doc");
     while(true) {
       int candidate = next(query._tokens, docid);
       if (candidate == -1) {
@@ -436,16 +470,17 @@ public class IndexerInverted extends Indexer implements Serializable {
         return null;
       }
       boolean containAll = true;
-      for (String phrase : qp._phrase) {
-        if (!containsPhrase(phrase, candidate)) {
-          containAll = false;
-          break;
-        }
-      }
-      if (containAll) {
-        return _documents.get(candidate);
-      }
-      docid = candidate - 1;
+//      for (String phrase : qp._phrase) {
+//        if (!containsPhrase(phrase, candidate)) {
+//          containAll = false;
+//          break;
+//        }
+//      }
+//      if (containAll) {
+//        return _documents.get(candidate);
+//      }
+//      docid = candidate - 1;
+      return _documents.get(candidate);
     }
   }
 
@@ -457,7 +492,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     for (int i = 0; i < tokens.size(); i++) {
       docs[i] = next(tokens.get(i), docid);
     }
-    System.out.println("docs: " + Arrays.toString(docs));
+    Helper.printVerbose("docs: " + Arrays.toString(docs));
     Arrays.sort(docs);
     if (docs[0] == -1) {
       return -1;
@@ -516,7 +551,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     next_offset = offsetFile.readLong();
 
     int size = (int)(next_offset - offset);
-    String indexFileName = _options._indexPrefix + INDEX_FILE_NAME;
+    String indexFileName = _options._indexPrefix + COMPRESSED_FILE_NAME;
     RandomAccessFile indexFile = new RandomAccessFile(indexFileName,"r");
     indexFile.seek(offset);
 
@@ -747,9 +782,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     }
 
     public void appendOccurrence(int pos) {
-      if (!_occurrence.contains(pos)) {
         _occurrence.add(pos);
-      }
     }
   }
 
@@ -789,7 +822,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     }
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException, ClassNotFoundException{
     Options op = new Options("conf/engine.conf");
     IndexerInverted indexer = new IndexerInverted(op);
     indexer.constructIndex();

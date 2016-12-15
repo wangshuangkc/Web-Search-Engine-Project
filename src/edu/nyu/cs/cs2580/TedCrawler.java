@@ -21,7 +21,7 @@ public class TedCrawler implements Serializable {
   private Options _options = null;
   private static final String BASE_URL = "https://www.ted.com";
   private static final String[] LANGUAGES = {"zh-cn"};
-  private long totalPage = 65;
+  private long totalPage = 65; //todo make sure this is 65
   private static final String CACHED_LAST = "/cached_last.json";
   private static final String CACHED_URLS = "/cached_urls.json";
   private Map<String, String> lastCachedUrl = new HashMap<>();

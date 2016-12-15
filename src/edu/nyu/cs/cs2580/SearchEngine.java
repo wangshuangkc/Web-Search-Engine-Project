@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.HttpServer;
+import org.json.simple.parser.ParseException;
 
 /**
  * This is the main entry class for the Search Engine.
@@ -30,7 +31,6 @@ public class SearchEngine {
     public String _corpusAnalyzerType = null;
     public String _logMinerType = null;
     public String _webPrefix = null;
-    public String _rankerType = null;
 
     /**
      * Constructor for options.
@@ -79,11 +79,6 @@ public class SearchEngine {
 
       _webPrefix = options.get("web_prefix");
       Check(_webPrefix != null, "Missing option: web_prefix!");
-
-      _rankerType = options.get("ranker_type");
-      Check(_rankerType != null, "Missing option: ranker_type!");
-
-      // todo remove unnecessary options
     }
   }
   public static Options OPTIONS = null;
@@ -103,6 +98,7 @@ public class SearchEngine {
    */
   public static enum Mode {
     NONE,
+    CRAWL,
     MINING,
     INDEX,
     SERVE,
@@ -130,14 +126,20 @@ public class SearchEngine {
         OPTIONS = new Options(value);
       }
     }
-    Check(MODE == Mode.SERVE || MODE == Mode.INDEX || MODE == Mode.MINING,
-        "Must provide a valid mode: serve or index or mining!");
+    Check(MODE == Mode.SERVE || MODE == Mode.INDEX || MODE == Mode.MINING || MODE == Mode.CRAWL,
+        "Must provide a valid mode: serve or index or mining or crawl!");
     Check(MODE != Mode.SERVE || PORT != -1,
         "Must provide a valid port number (258XX) in serve mode!");
     Check(OPTIONS != null, "Must provide options!");
   }
 
   ///// Main functionalities start
+
+  private static void startCrawling() throws IOException, ParseException {
+    TedCrawler crawler = new TedCrawler(SearchEngine.OPTIONS);
+    Check(crawler != null, "Crawler not found!");
+    crawler.graspUrls();
+  }
 
   private static void startMining()
       throws IOException, NoSuchAlgorithmException {
@@ -169,7 +171,6 @@ public class SearchEngine {
         "Indexer " + SearchEngine.OPTIONS._indexerType + " not found!");
     indexer.loadIndex();
     QueryHandler handler = new QueryHandler(SearchEngine.OPTIONS, indexer);
-    // todo construct ranker from the options
 
     // Establish the serving environment
     InetSocketAddress addr = new InetSocketAddress(SearchEngine.PORT);
@@ -185,6 +186,9 @@ public class SearchEngine {
     try {
       SearchEngine.parseCommandLine(args);
       switch (SearchEngine.MODE) {
+      case CRAWL:
+        startCrawling();
+        break;
       case MINING:
         startMining();
         break;
