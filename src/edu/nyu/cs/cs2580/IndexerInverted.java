@@ -28,10 +28,10 @@ public class IndexerInverted extends Indexer implements Serializable {
   private int[] cachedPostingIdxes;
   private static ChineseSegmentor segmentor;
 
-  public IndexerInverted(Options options) {
+  public IndexerInverted(Options options) throws IOException, ClassNotFoundException {
     super(options);
     checkDir();
-    //todo load index to get the previous settings
+    loadIndex();
     System.out.println("Using Indexer: " + this.getClass().getSimpleName());
   }
 
@@ -94,12 +94,11 @@ public class IndexerInverted extends Indexer implements Serializable {
     saveDataIndex();
   }
 
-  private String runCrawler() throws IOException, ParseException {
-    TedCrawler crawler = new TedCrawler(_options);
-    return crawler.graspUrls();
-  }
-
   public long processDocument(String url, JSONObject videoData) throws IOException{
+    if (videoData == null) {
+      return 0l;
+    }
+
     int did = _numDocs++;
     long result = 0l;
     int docTotalTerms = 0;
@@ -146,8 +145,6 @@ public class IndexerInverted extends Indexer implements Serializable {
         if (token == null || token.trim().isEmpty()) {
           continue;
         }
-
-        System.out.println("word: " + token);
         if (!prfMap.containsKey(token)) {
           prfMap.put(token, 1);
         } else {
@@ -407,6 +404,11 @@ public class IndexerInverted extends Indexer implements Serializable {
 
   private void readDataIndex() throws IOException, ClassNotFoundException {
     String dataFile = _options._indexPrefix + DATA_FILE_NAME;
+    File file = new File(dataFile);
+    if (!file.exists()) {
+      return;
+    }
+
     System.out.println("Load global data from: " + dataFile);
     ObjectInputStream reader = new ObjectInputStream(new FileInputStream(dataFile));
     _numDocs = (int) reader.readObject();
@@ -791,7 +793,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     }
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException, ClassNotFoundException {
     Options op = new Options("conf/engine.conf");
     IndexerInverted indexer = new IndexerInverted(op);
     indexer.constructIndex();
