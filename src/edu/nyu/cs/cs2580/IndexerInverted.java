@@ -26,12 +26,15 @@ public class IndexerInverted extends Indexer implements Serializable {
   private Vector<VideoDocumentIndexed> _documents = new Vector<>();
   private Map<Integer, Term> _index = new HashMap<>();
   private int[] cachedPostingIdxes;
-  private ChineseSegmentor segmentor;
+  public static ChineseSegmentor _segmentor;
 
   public IndexerInverted(Options options) throws IOException, ClassNotFoundException {
     super(options);
     checkDir();
     readDataIndex();
+    if (_segmentor == null) {
+      _segmentor = new ChineseSegmentor();
+    }
     System.out.println("Using Indexer: " + this.getClass().getSimpleName());
   }
 
@@ -45,9 +48,7 @@ public class IndexerInverted extends Indexer implements Serializable {
 
   @Override
   public void constructIndex() throws IOException {
-    if (segmentor == null) {
-      segmentor = new ChineseSegmentor();
-    }
+
 
     String prfOffsetFile = _options._indexPrefix + PRF_OFFSET_FILE_NAME;
     RandomAccessFile prfOffset = new RandomAccessFile(prfOffsetFile, "rw");
@@ -140,7 +141,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     Scanner scanner = new Scanner(tokens).useDelimiter(delimiter);
     while(scanner.hasNext()) {
       String sentence = scanner.next();
-      List<String> words = segmentor.parse(sentence);
+      List<String> words = _segmentor.parse(sentence);
       for (String token : words) {
         if (token == null || token.trim().isEmpty()) {
           continue;

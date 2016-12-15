@@ -75,7 +75,7 @@ public class TedCrawler implements Serializable {
     readLastCached();
 
     boolean reachCachedLast = false;
-    for (int i = 2; i <= totalPage && !reachCachedLast; i++) {
+    for (int i = 1; i <= totalPage && !reachCachedLast; i++) {
       Helper.printVerbose("Download page # " + i + " ...");
       Document doc = Jsoup.connect(BASE_URL + "/talks?language=" + lang + "&page=" + i).get();
       if (doc.toString().contains("Sorry. We couldn't find a talk quite like that.")) {

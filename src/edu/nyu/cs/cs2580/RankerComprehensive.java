@@ -24,16 +24,16 @@ public class RankerComprehensive extends Ranker {
   @Override
   public Vector<ScoredDocument> runQuery(Query query, int numResults) {
     Vector<ScoredDocument> results = null;
-    QueryPhrase qp = new QueryPhrase(query._query);
-    qp.processQuery();
+    QueryChinese qc = new QueryChinese(query._query, ((IndexerInverted)_indexer)._segmentor);
+    qc.processQuery();
     
     try {
       Vector<ScoredDocument> scoredDocs = new Vector<>();
-      DocumentIndexed doc = (DocumentIndexed) _indexer.nextDoc(qp, -1);
-      //System.out.println("find potential doc: " + doc._docid);
+      DocumentIndexed doc = (DocumentIndexed) _indexer.nextDoc(qc, -1);
+      Helper.printVerbose("find potential doc: " + doc._docid);
       while (doc != null) {
-        scoredDocs.add(scoreDocument(qp, doc._docid));
-        doc = (DocumentIndexed) _indexer.nextDoc(qp, doc._docid);
+        scoredDocs.add(scoreDocument(qc, doc._docid));
+        doc = (DocumentIndexed) _indexer.nextDoc(qc, doc._docid);
       }
   
       Collections.sort(scoredDocs, new Comparator<ScoredDocument>() {
@@ -62,7 +62,7 @@ public class RankerComprehensive extends Ranker {
     return results;
   }
   
-  private ScoredDocument scoreDocument(QueryPhrase query, int docid) {
+  private ScoredDocument scoreDocument(Query query, int docid) {
     DocumentIndexed doc = (DocumentIndexed)_indexer.getDoc(docid);
     long docTotalTerm = doc.getDocTotalTerms();
     if (doc == null) {
