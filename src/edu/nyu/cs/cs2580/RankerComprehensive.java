@@ -14,6 +14,7 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
  */
 public class RankerComprehensive extends Ranker {
   private double _lambda = 0.5;
+  private double normalized = -1;
 
   public RankerComprehensive(Options options,
        CgiArguments arguments, Indexer indexer) {
@@ -73,7 +74,7 @@ public class RankerComprehensive extends Ranker {
     float relevance = 0.0f;
     for (String token : query._tokens) {
       int tf = _indexer.documentTermFrequency(token, docid);
-      ;
+      Helper.printVerbose("frequence: " + token + " | " + tf + " | " + docTotalTerm);
       relevance += Math.log((1 - _lambda) * tf / docTotalTerm +
           _lambda * _indexer.corpusTermFrequency(token) / _indexer._totalTermFrequency);
     }
@@ -83,11 +84,15 @@ public class RankerComprehensive extends Ranker {
     }
 
     Helper.printVerbose("relevance: " + relevance);
-
-    int numview = doc.getNumViews() / Helper.postPeriod(doc.getPostMonths());
+    if (normalized <= 0) {
+      normalized = relevance;
+    }
+    Helper.printVerbose("normalized: " + relevance/normalized);
+    int numview = doc.getNumViews() / Helper.postPeriod(doc.getPostMonths()) / 30;
+    Helper.printVerbose("num view: " + numview);
     
-    double score = 0.75 * relevance + 0.25 * Math.log(numview + 1);
-    
+    double score = 0.75 * relevance/normalized + 0.25 * Math.log(numview + 1);
+    Helper.printVerbose("score: " + score);
     return new ScoredDocument(doc, score);
   }
 
@@ -100,7 +105,7 @@ public class RankerComprehensive extends Ranker {
     Vector<ScoredDocument> sdoc = ranker.runQuery(new Query(arg._query), 0);
     for (ScoredDocument d : sdoc) {
       Document doc = d.getDoc();
-      Helper.printVerbose(doc.getUrl());
+      Helper.printVerbose(doc._docid + ": " + doc.getUrl());
     }
   }
 

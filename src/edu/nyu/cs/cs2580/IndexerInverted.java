@@ -782,9 +782,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     }
 
     public void appendOccurrence(int pos) {
-      if (!_occurrence.contains(pos)) {
         _occurrence.add(pos);
-      }
     }
   }
 
