@@ -13,7 +13,7 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
 public class IndexerInverted extends Indexer implements Serializable {
 
   private static final long serialVersionUID = 1077111905740085031L;
-  private static final int MAX_DOC_IDX = 10;
+  private static final int MAX_DOC_IDX = 10; //todo change max_doc_id back to 500
   private static final String DATA_FILE_NAME = "/data.idx";
   private static final String INDEX_FILE_NAME = "/occurrence.idx";
   private static final String COMPRESSED_FILE_NAME = "/compressed.idx";
@@ -107,7 +107,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     doc.setUrl(url);
     doc.setTitle(videoData.get("title").toString());
     doc.setNumViews(Integer.valueOf(videoData.get("shared").toString()));
-    doc.setPostMonths(Helper.postPeriod(videoData.get("time").toString()));
+    doc.setPostMonths(videoData.get("time").toString());
     doc.setSpeaker(videoData.get("speaker").toString());
 
     String description = videoData.get("description").toString();
@@ -185,7 +185,7 @@ public class IndexerInverted extends Indexer implements Serializable {
       String[] paras = tran.split("\t");
       String timeTag = paras[0];
       String tokens = paras[1];
-      docTotalTerms += makeIndex(tokens, "[^\\w']+", Helper.convertToTime(timeTag), prfMap, did);
+      docTotalTerms += makeIndex(tokens, "\\s+", Helper.convertToTime(timeTag), prfMap, did);
     }
 
     return docTotalTerms;
@@ -458,10 +458,7 @@ public class IndexerInverted extends Indexer implements Serializable {
    */
   @Override
   public VideoDocumentIndexed nextDoc(Query query, int docid) {
-    QueryPhrase qp = new QueryPhrase(query._query);
-    qp.processQuery();
-
-    System.out.println("looking for common doc");
+    Helper.printVerbose("looking for common doc");
     while(true) {
       int candidate = next(query._tokens, docid);
       if (candidate == -1) {
@@ -469,16 +466,17 @@ public class IndexerInverted extends Indexer implements Serializable {
         return null;
       }
       boolean containAll = true;
-      for (String phrase : qp._phrase) {
-        if (!containsPhrase(phrase, candidate)) {
-          containAll = false;
-          break;
-        }
-      }
-      if (containAll) {
-        return _documents.get(candidate);
-      }
-      docid = candidate - 1;
+//      for (String phrase : qp._phrase) {
+//        if (!containsPhrase(phrase, candidate)) {
+//          containAll = false;
+//          break;
+//        }
+//      }
+//      if (containAll) {
+//        return _documents.get(candidate);
+//      }
+//      docid = candidate - 1;
+      return _documents.get(candidate);
     }
   }
 
@@ -490,7 +488,7 @@ public class IndexerInverted extends Indexer implements Serializable {
     for (int i = 0; i < tokens.size(); i++) {
       docs[i] = next(tokens.get(i), docid);
     }
-    System.out.println("docs: " + Arrays.toString(docs));
+    Helper.printVerbose("docs: " + Arrays.toString(docs));
     Arrays.sort(docs);
     if (docs[0] == -1) {
       return -1;

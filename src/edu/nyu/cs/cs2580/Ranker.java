@@ -45,6 +45,11 @@ public abstract class Ranker {
     _indexer = indexer;
   }
 
+  protected Ranker(Options options, Indexer indexer) {
+    _options = options;
+    _indexer = indexer;
+  }
+
   /**
    * Processes one query.
    * @param query the parsed user query
@@ -68,7 +73,7 @@ public abstract class Ranker {
       case FAVORITE:
         return new RankerFavorite(options, arguments, indexer);
       case COMPREHENSIVE:
-        return new RankerComprehensive(options, arguments, indexer);
+        return new RankerComprehensive(options, indexer);
       case COSINE:
         // Plug in your cosine Ranker
         break;

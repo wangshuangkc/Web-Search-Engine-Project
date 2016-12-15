@@ -105,9 +105,15 @@ class QueryHandler implements HttpHandler {
   // we are not worried about thread-safety here, the Indexer class must take
   // care of thread-safety.
   private Indexer _indexer;
+  private Ranker _ranker;
 
   public QueryHandler(Options options, Indexer indexer) {
     _indexer = indexer;
+  }
+
+  public QueryHandler(Options options, Indexer indexer, Ranker ranker) {
+    _indexer = indexer;
+    _ranker = ranker;
   }
 
   private void respondWithMsg(HttpExchange exchange, final String message)
@@ -162,9 +168,8 @@ class QueryHandler implements HttpHandler {
     }
     
     // Create the ranker.
-    Ranker ranker = Ranker.Factory.getRankerByArguments(
-        cgiArgs, SearchEngine.OPTIONS, _indexer);
-    if (ranker == null) {
+    // Ranker ranker = Ranker.Factory.getRankerByArguments(cgiArgs, SearchEngine.OPTIONS, _indexer);
+    if (_ranker == null) {
       respondWithMsg(exchange,
           "Ranker " + cgiArgs._rankerType.toString() + " is not valid!");
     }
@@ -178,7 +183,7 @@ class QueryHandler implements HttpHandler {
     // Ranking.
     if (uriPath.equals("/search")) {
       Vector<ScoredDocument> scoredDocs =
-              ranker.runQuery(processedQuery, cgiArgs._numResults);
+              _ranker.runQuery(processedQuery, cgiArgs._numResults);
       switch (cgiArgs._outputFormat) {
         case TEXT:
           constructTextOutput(scoredDocs, response);
@@ -192,7 +197,7 @@ class QueryHandler implements HttpHandler {
     } else {
       System.out.println("start prf");
       Vector<ScoredDocument> scoredDocs =
-          ranker.runQuery(processedQuery, cgiArgs._numDocs);
+          _ranker.runQuery(processedQuery, cgiArgs._numDocs);
       PRF prf = new PRF(scoredDocs, cgiArgs._numTerms, _indexer);
       System.out.println("start construct response");
       prf.constructResponse(response);

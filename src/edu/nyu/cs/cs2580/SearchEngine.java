@@ -176,8 +176,9 @@ public class SearchEngine {
     Check(indexer != null,
         "Indexer " + SearchEngine.OPTIONS._indexerType + " not found!");
     indexer.loadIndex();
-    QueryHandler handler = new QueryHandler(SearchEngine.OPTIONS, indexer);
-    // todo construct ranker from the options
+    Ranker ranker = new RankerComprehensive(SearchEngine.OPTIONS, indexer);
+    Check(ranker != null, "Ranker " + SearchEngine.OPTIONS._rankerType + " not found!");
+    QueryHandler handler = new QueryHandler(SearchEngine.OPTIONS, indexer, ranker);
 
     // Establish the serving environment
     InetSocketAddress addr = new InetSocketAddress(SearchEngine.PORT);

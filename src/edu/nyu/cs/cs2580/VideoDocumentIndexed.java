@@ -6,7 +6,7 @@ package edu.nyu.cs.cs2580;
 public class VideoDocumentIndexed extends Document {
   private static final long serialVersionUID = 9184892508124423115L;
   private String _speaker = "";
-  private int _postMonths = 0;
+  private String _postTime = "";
 
   public VideoDocumentIndexed(int docid) {
     super(docid);
@@ -30,11 +30,11 @@ public class VideoDocumentIndexed extends Document {
     return _speaker;
   }
 
-  public void setPostMonths(int months) {
-    _postMonths = months;
+  public void setPostMonths(String time) {
+    _postTime = time;
   }
 
-  public int getPostMonths() {
-    return _postMonths;
+  public String getPostMonths() {
+    return _postTime;
   }
 }

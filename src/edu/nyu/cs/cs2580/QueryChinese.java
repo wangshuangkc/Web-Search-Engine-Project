@@ -48,7 +48,9 @@ public class QueryChinese extends Query {
     while(s.hasNext()) {
       List<String> words = _segmentor.parse(s.next().trim());
       for (String word : words) {
-        if (!_tokens.contains(word) && !_stopwords.contains(word)) {
+        if (!_tokens.contains(word) &&
+            ((words.size() >= 2 && !_stopwords.contains(word)) ||
+            words.size() < 2 )) {
           _tokens.add(word);
         }
       }
@@ -57,7 +59,7 @@ public class QueryChinese extends Query {
 
   public static void main(String[] args) {
     ChineseSegmentor segmentor = new ChineseSegmentor();
-    String q = "我们的图书馆大吗";
+    String q = "我们的";
     QueryChinese qc = new QueryChinese(q, segmentor);
     qc.processQuery();
     Helper.printVerbose(Arrays.toString(qc._tokens.toArray()));
