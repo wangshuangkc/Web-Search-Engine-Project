@@ -13,7 +13,7 @@ import edu.nyu.cs.cs2580.SearchEngine.Options;
 public class IndexerInverted extends Indexer implements Serializable {
 
   private static final long serialVersionUID = 1077111905740085031L;
-  private static final int MAX_DOC_IDX = 10; //todo change max_doc_id back to 500
+  private static final int MAX_DOC_IDX = 500; //todo make sure this is 500
   private static final String DATA_FILE_NAME = "/data.idx";
   private static final String INDEX_FILE_NAME = "/occurrence.idx";
   private static final String COMPRESSED_FILE_NAME = "/compressed.idx";
