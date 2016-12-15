@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 import com.sun.net.httpserver.HttpServer;
+import org.json.simple.parser.ParseException;
 
 /**
  * This is the main entry class for the Search Engine.
@@ -103,6 +104,7 @@ public class SearchEngine {
    */
   public static enum Mode {
     NONE,
+    CRAWL,
     MINING,
     INDEX,
     SERVE,
@@ -130,7 +132,7 @@ public class SearchEngine {
         OPTIONS = new Options(value);
       }
     }
-    Check(MODE == Mode.SERVE || MODE == Mode.INDEX || MODE == Mode.MINING,
+    Check(MODE == Mode.SERVE || MODE == Mode.INDEX || MODE == Mode.MINING || MODE == Mode.CRAWL,
         "Must provide a valid mode: serve or index or mining!");
     Check(MODE != Mode.SERVE || PORT != -1,
         "Must provide a valid port number (258XX) in serve mode!");
@@ -138,6 +140,12 @@ public class SearchEngine {
   }
 
   ///// Main functionalities start
+
+  private static void startCrawling() throws IOException, ParseException {
+    TedCrawler crawler = new TedCrawler(SearchEngine.OPTIONS);
+    Check(crawler != null, "Crawler not found!");
+    crawler.graspUrls();
+  }
 
   private static void startMining()
       throws IOException, NoSuchAlgorithmException {
@@ -185,6 +193,8 @@ public class SearchEngine {
     try {
       SearchEngine.parseCommandLine(args);
       switch (SearchEngine.MODE) {
+      case CRAWL:
+        startCrawling();
       case MINING:
         startMining();
         break;
