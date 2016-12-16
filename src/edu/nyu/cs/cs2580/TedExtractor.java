@@ -34,6 +34,7 @@ public class TedExtractor {
   private static final String TRAN_SELECTOR = "p.talk-transcript__para";
   private static final String TRAN_TIME_SELECTOR = "data.talk-transcript__para__time";
   private static final String PARA_SELECTOR = "span.talk-transcript__para__text";
+  private static final String IMG_SELECTOR = ".thumb__image";
 
   public TedExtractor(String url) {
     _url = url;
@@ -103,26 +104,20 @@ public class TedExtractor {
     return sb.toString();
   }
 
+  private String extractImage(Document doc) {
+    Element img = doc.select(IMG_SELECTOR).first();
+
+    return img.attr("src");
+  }
+
   public static void main(String[] args) throws IOException, ParseException {
-    String urlLists = "data/web/cached_urls.json";
-    System.out.println("Read cached last url from " + urlLists);
-    File cachedFile = new File(urlLists);
-    if (cachedFile.exists()) {
-      JSONParser parser = new JSONParser();
-      JSONObject jsonObj = (JSONObject) parser.parse(new FileReader(cachedFile));
-      String base_url = jsonObj.get("base_url").toString();
-      JSONArray urls = (JSONArray) jsonObj.get("video_url");
-      Iterator i = urls.iterator();
-      int cnt = 0;
-      while (i.hasNext() && cnt <= 10) {
-        cnt++;
-        String vurl = (String)i.next();
-        TedExtractor tex = new TedExtractor(base_url + vurl);
-        FileWriter writer = new FileWriter("data/tran" + cnt + ".json");
-        writer.write(tex.extract().toString());
-        writer.close();
-        Helper.printVerbose("Parse url #" + cnt);
-      }
-    }
+    String url = "https://www.ted.com/talks/sam_harris_can_we_build_ai_without_losing_control_over_it";
+    System.out.println("Read content from " + url);
+    TedExtractor tex = new TedExtractor(url);
+    JSONObject obj = tex.extract();
+    FileWriter writer = new FileWriter("data/tran.json");
+    writer.write(obj.toString());
+    writer.close();
+    Helper.printVerbose(obj.get("image").toString());
   }
 }

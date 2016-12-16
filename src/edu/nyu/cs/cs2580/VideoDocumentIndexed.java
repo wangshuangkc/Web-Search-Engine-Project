@@ -7,6 +7,7 @@ public class VideoDocumentIndexed extends Document {
   private static final long serialVersionUID = 9184892508124423115L;
   private String _speaker = "";
   private String _postTime = "";
+  private String _image = "";
 
   public VideoDocumentIndexed(int docid) {
     super(docid);
@@ -36,5 +37,13 @@ public class VideoDocumentIndexed extends Document {
 
   public String getPostMonths() {
     return _postTime;
+  }
+
+  public void setImage(String image) {
+    _image = image;
+  }
+
+  public String getImage() {
+    return _image;
   }
 }

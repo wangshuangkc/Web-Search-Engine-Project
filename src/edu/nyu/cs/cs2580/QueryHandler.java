@@ -1,7 +1,11 @@
 package edu.nyu.cs.cs2580;
 
+import java.awt.*;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.Vector;
 
 import com.sun.net.httpserver.Headers;
@@ -9,6 +13,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import edu.nyu.cs.cs2580.SearchEngine.Options;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 /**
  * Handles each incoming query, students do not need to change this class except
@@ -65,7 +71,11 @@ class QueryHandler implements HttpHandler {
         String key = keyval[0].toLowerCase();
         String val = keyval[1];
         if (key.equals("query")) {
-          _query = val;
+          try {
+            _query = URLDecoder.decode(val, "UTF-8");
+          } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+          }
         } else if (key.equals("num")) {
           try {
             _numResults = Integer.parseInt(val);
@@ -114,6 +124,8 @@ class QueryHandler implements HttpHandler {
       throws IOException {
     Headers responseHeaders = exchange.getResponseHeaders();
     responseHeaders.set("Content-Type", "text/plain");
+    responseHeaders.set("Access-Control-Allow-Origin", "*");
+    responseHeaders.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
     exchange.sendResponseHeaders(200, 0); // arbitrary number of bytes
     OutputStream responseBody = exchange.getResponseBody();
     responseBody.write(message.getBytes());
@@ -122,12 +134,26 @@ class QueryHandler implements HttpHandler {
 
   private void constructTextOutput(
       final Vector<ScoredDocument> docs, StringBuffer response) {
-    response.append("DocId\tTitle\tScore\n");
+    /*if (docs.size() == 0) {
+      response.append("No results");
+    }
+    response.append("URL\tTitle\tSpeaker\n");
     for (ScoredDocument doc : docs) {
       response.append(response.length() > 0 ? "\n" : "");
       response.append(doc.asTextResult());
     }
-    response.append(response.length() > 0 ? "\n" : "");
+    response.append(response.length() > 0 ? "\n" : ""); */
+    JSONObject results =new JSONObject();
+    int i = 1;
+    for (ScoredDocument doc : docs) {
+      VideoDocumentIndexed video = (VideoDocumentIndexed)doc.getDoc();
+      JSONObject obj = new JSONObject();
+      obj.put("url", video.getUrl());
+      obj.put("title", video.getTitle());
+      obj.put("speaker", video.getSpeaker());
+      results.put(i++, obj);
+    }
+    response.append(results.toJSONString());
   }
 
   public void handle(HttpExchange exchange) throws IOException {
@@ -182,12 +208,12 @@ class QueryHandler implements HttpHandler {
       switch (cgiArgs._outputFormat) {
         case TEXT:
           constructTextOutput(scoredDocs, response);
+          respondWithMsg(exchange, response.toString());
           break;
         case HTML:
-          // @CS2580: Plug in your HTML output
           break;
         default:
-          // nothing
+          break;
       }
     } else {
       System.out.println("start prf");
@@ -197,9 +223,23 @@ class QueryHandler implements HttpHandler {
       System.out.println("start construct response");
       prf.constructResponse(response);
       System.out.println(response.toString());
+      respondWithMsg(exchange, response.toString());
     }
-    respondWithMsg(exchange, response.toString());
+
     System.out.println("Finished query: " + cgiArgs._query);
+  }
+
+  private void constructHtmlOutput(Vector<ScoredDocument> docs, StringBuffer response) throws IOException {
+    JSONArray result = new JSONArray();
+    for (ScoredDocument doc : docs) {
+      VideoDocumentIndexed video = (VideoDocumentIndexed)doc.getDoc();
+      JSONObject obj = new JSONObject();
+      obj.put("url", video.getUrl());
+      obj.put("title", video.getTitle());
+      obj.put("speaker", video.getSpeaker());
+      result.add(obj);
+    }
+    response.append(result);
   }
 }
 
