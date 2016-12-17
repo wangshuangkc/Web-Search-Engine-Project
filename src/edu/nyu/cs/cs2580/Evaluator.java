@@ -49,34 +49,35 @@ class Evaluator {
    * Usage: java -cp src edu.nyu.cs.cs2580.Evaluator [labels] [rankedResults] [metric_id]
    */
   public static void main(String[] args) throws IOException {
-    Map<String, DocumentRelevances> judgments =
+    Map<String, DocumentRelevances> judgements =
         new HashMap<String, DocumentRelevances>();
     Vector<String> rankedResults = new Vector<String>();
 
-    SearchEngine.Check(args.length == 2, "Must provide labels and metric_id!");
-    readRelevanceJudgments(args[0], judgments);
-    evaluateStdin(Integer.parseInt(args[2]), judgments, args[1]);
+    SearchEngine.Check(args.length == 3, "Must provide labels and metric_id!");
+    readRelevanceJudgments(args[0], judgements);
+    evaluateStdin(Integer.parseInt(args[2]), judgements, args[1]);
   }
 
   public static void readRelevanceJudgments(
       String judgeFile, Map<String, DocumentRelevances> judgements)
       throws IOException {
-    String line = null;
-    BufferedReader reader = new BufferedReader(new FileReader(judgeFile));
-    while ((line = reader.readLine()) != null) {
-      // Line format: query \t docid \t grade
-      Scanner s = new Scanner(line).useDelimiter("\t");
-      String query = s.next();
+    File text = new File(judgeFile);
+    Scanner scan = new Scanner(text);
+
+    while (scan.hasNext()) {
+      String curLine = scan.nextLine();
+      String[] splitted = curLine.split("\t");
+      String query = splitted[0];
       DocumentRelevances relevances = judgements.get(query);
       if (relevances == null) {
         relevances = new DocumentRelevances();
         judgements.put(query, relevances);
       }
-      relevances.addDocument(s.next(), s.next());
+      relevances.addDocument(splitted[1], splitted[2]);
       judgements.put(query, relevances);
-      s.close();
     }
-    reader.close();
+    scan.close();
+
   }
 
 
@@ -94,7 +95,7 @@ class Evaluator {
       if (!query.equals(currentQuery)) {
         if (results.size() > 0) {
           StringBuffer sb = new StringBuffer();
-          int[] ks = {1, 5, 10};
+          int[] ks = {10, 50, 100};
           switch (metric) {
             case -1:
               evaluateQueryInstructor(currentQuery, results, judgments);
@@ -136,7 +137,7 @@ class Evaluator {
     reader.close();
     if (results.size() > 0) {
       StringBuffer sb = new StringBuffer(currentQuery + "\t");
-      int[] ks = {1, 5, 10};
+      int[] ks = {10, 50, 100};
       switch (metric) {
         case -1:
           evaluateQueryInstructor(currentQuery, results, judgments);

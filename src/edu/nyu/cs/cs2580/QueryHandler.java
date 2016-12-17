@@ -5,11 +5,9 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import edu.nyu.cs.cs2580.SearchEngine.Options;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
+import java.io.PrintWriter;
 import java.util.Vector;
 
 /**
@@ -122,24 +120,23 @@ class QueryHandler implements HttpHandler {
     responseBody.close();
   }
 
-  private void constructTextOutput(
-
-      final Vector<ScoredDocument> docs, StringBuffer response) {
+  private void constructTextOutput(final Vector<ScoredDocument> docs, StringBuffer response, Query processedQuery) {
     response.append("DocId\tTitle\tScore\n");
-
     for (ScoredDocument doc : docs) {
       response.append(response.length() > 0 ? "\n" : "");
       response.append(doc.asTextResult());
     }
     response.append(response.length() > 0 ? "\n" : "");
 
-    String rankdedResults = _options._indexPrefix + "/" + "rankdedResults.tsv";
-    try {
-    BufferedWriter writer = new BufferedWriter(new FileWriter(rankdedResults,true));
+    String rankdedResults = "rankdedResultsFor"+processedQuery._query+".tsv";
+    try{
+      PrintWriter writer = new PrintWriter(rankdedResults, "UTF-8");
       for (ScoredDocument scoredDoc: docs) {
-        writer.write(processedQuery._query+""+(scoredDoc.getDoc()).getTitle() + "\n");
+        writer.println(processedQuery._query+"\t"+(scoredDoc.getDoc()).getUrl().substring(19) );
       }
-    } catch (IOException e){}
+      writer.close();
+    } catch (IOException e) {
+    }
   }
 
   public void handle(HttpExchange exchange) throws IOException {
