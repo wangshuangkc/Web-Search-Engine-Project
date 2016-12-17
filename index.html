@@ -5,28 +5,35 @@
   <title>CHED Talks</title>
   <link rel='stylesheet prefetch' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css'>
   <link rel="stylesheet" href="front/css/style.css">
+  <link rel="stylesheet" href='front/css/hoverbox.css' type="/css" media="screen, projection" />
+  <script src="http://www.w3schools.com/appml/2.0.3/appml.js"></script>
 </head>
 
 <body>
-  <div class="header">
-    <h1>CHED Talks</h1>
-    <div class="search-tool">
-      <input class="search" placeholder="Search TED Talks in Chinese">
-      <i class="fa fa-search" aria-hidden="true"></i>
-    </div>
+<div class="header">
+  <h1>CHED Talks</h1>
+  <div class="search-tool">
+    <input class="search" placeholder="Search TED Talks in Chinese">
+    <i class="fa fa-search" aria-hidden="true"></i>
   </div>
+</div>
 
-  <div class="recomend">
-  </div>
+<div class="results">
+  <h3 id="number"></h3>
+  <table id="frame">
+    <tr></tr>
+  </table>
+</div>
 
-  <div class="results">
-  </div>
-
-  <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js'></script>
-  <script src="front/js/index.js"></script>
-
-  <footer class="blog-footer">
-    <p><small>&#169; WEB SEARCH ENGINES FALL 2016</small></p>
-  </footer>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js'></script>
+<script src="front/js/index.js"></script>
+<script>
+    if (!$('.search').val()) {
+      $('.results').hide();
+    }
+  </script>
+<footer class="blog-footer">
+  <p><small>&#169; WEB SEARCH ENGINES FALL 2016</small></p>
+</footer>
 </body>
 </html>

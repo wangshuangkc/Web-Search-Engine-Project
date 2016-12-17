@@ -50,6 +50,7 @@ public class TedExtractor {
 
     try {
       Document info = Jsoup.connect(_url + INFO_URL).timeout(5000).get();
+      obj.put("url", _url);
       obj.put("title", extractTitle(info));
       obj.put("speaker", extractSpeaker(info));
       obj.put("shared", extractNumShared(info));
