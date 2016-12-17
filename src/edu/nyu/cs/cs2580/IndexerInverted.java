@@ -113,7 +113,6 @@ public class IndexerInverted extends Indexer implements Serializable {
     doc.setNumViews(Integer.valueOf(videoData.get("shared").toString()));
     doc.setPostMonths(videoData.get("time").toString());
     doc.setSpeaker(videoData.get("speaker").toString());
-
     String description = videoData.get("description").toString();
     String transcript = videoData.get("transcript").toString();
 

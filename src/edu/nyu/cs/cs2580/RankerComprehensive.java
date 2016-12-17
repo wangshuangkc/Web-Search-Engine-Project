@@ -31,8 +31,8 @@ public class RankerComprehensive extends Ranker {
       qc.processQuery();
       Vector<ScoredDocument> scoredDocs = new Vector<>();
       VideoDocumentIndexed doc = (VideoDocumentIndexed) _indexer.nextDoc(qc, -1);
-      Helper.printVerbose("find potential doc: " + doc._docid);
       while (doc != null) {
+        Helper.printVerbose("find potential doc: " + doc._docid);
         scoredDocs.add(scoreDocument(qc, doc._docid));
         doc = (VideoDocumentIndexed) _indexer.nextDoc(qc, doc._docid);
       }

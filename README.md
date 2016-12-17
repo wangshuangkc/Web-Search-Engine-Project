@@ -2,7 +2,7 @@
 Project for WSE Fall 2016
 
 **Important:**
-- Download the dictionary for Chinese Segmentation from: 
+- Download the dictionary for Chinese Segmentation from: https://drive.google.com/a/nyu.edu/file/d/0B1qSIaOCgo5FbFUxS3ZZS1Mxamc/view?usp=sharing
 - Unzip seg.zip and put it under /data
 
 **Commands:**

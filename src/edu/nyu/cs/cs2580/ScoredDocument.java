@@ -17,9 +17,9 @@ class ScoredDocument implements Comparable<ScoredDocument> {
 
   public String asTextResult() {
     StringBuffer buf = new StringBuffer();
-    buf.append(_doc._docid).append("\t");
+    buf.append(_doc.getUrl() + "?language=zh-cn").append("\t");
     buf.append(_doc.getTitle()).append("\t");
-    buf.append(String.format("%.4f",_score)).append("\t");
+    buf.append(((VideoDocumentIndexed)_doc).getSpeaker()).append("\n");
     return buf.toString();
   }
 
