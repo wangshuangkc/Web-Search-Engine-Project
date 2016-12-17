@@ -9,16 +9,9 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-<<<<<<< HEAD
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.util.Vector;
-=======
 import edu.nyu.cs.cs2580.SearchEngine.Options;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
->>>>>>> master
 
 /**
  * Handles each incoming query, students do not need to change this class except
@@ -136,34 +129,16 @@ class QueryHandler implements HttpHandler {
     responseBody.close();
   }
 
-<<<<<<< HEAD
-  private void constructTextOutput(final Vector<ScoredDocument> docs, StringBuffer response, Query processedQuery) {
-    response.append("DocId\tTitle\tScore\n");
-=======
   private void constructTextOutput(
       final Vector<ScoredDocument> docs, StringBuffer response) {
     /*if (docs.size() == 0) {
       response.append("No results");
     }
     response.append("URL\tTitle\tSpeaker\n");
->>>>>>> master
     for (ScoredDocument doc : docs) {
       response.append(response.length() > 0 ? "\n" : "");
       response.append(doc.asTextResult());
     }
-<<<<<<< HEAD
-    response.append(response.length() > 0 ? "\n" : "");
-
-    String rankdedResults = "rankdedResultsFor"+processedQuery._query+".tsv";
-    try{
-      PrintWriter writer = new PrintWriter(rankdedResults, "UTF-8");
-      for (ScoredDocument scoredDoc: docs) {
-        writer.println(processedQuery._query+"\t"+(scoredDoc.getDoc()).getUrl().substring(19) );
-      }
-      writer.close();
-    } catch (IOException e) {
-    }
-=======
     response.append(response.length() > 0 ? "\n" : ""); */
     JSONObject results =new JSONObject();
     JSONArray lists = new JSONArray();
@@ -181,7 +156,6 @@ class QueryHandler implements HttpHandler {
     results.put("video", lists);
     response.append(results.toJSONString());
     Helper.printVerbose("results: " + response.toString());
->>>>>>> master
   }
 
   public void handle(HttpExchange exchange) throws IOException {
