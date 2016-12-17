@@ -1,10 +1,7 @@
 package edu.nyu.cs.cs2580;
 
 import java.awt.*;
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URLDecoder;
 import java.util.Vector;
 
@@ -144,16 +141,21 @@ class QueryHandler implements HttpHandler {
     }
     response.append(response.length() > 0 ? "\n" : ""); */
     JSONObject results =new JSONObject();
-    int i = 1;
+    JSONArray lists = new JSONArray();
     for (ScoredDocument doc : docs) {
       VideoDocumentIndexed video = (VideoDocumentIndexed)doc.getDoc();
       JSONObject obj = new JSONObject();
       obj.put("url", video.getUrl());
+      Helper.printVerbose("check: " + obj.toString());
       obj.put("title", video.getTitle());
+      Helper.printVerbose("check: " + obj.toString());
       obj.put("speaker", video.getSpeaker());
-      results.put(i++, obj);
+      Helper.printVerbose("check: " + obj.toString());
+      lists.add(obj);
     }
+    results.put("video", lists);
     response.append(results.toJSONString());
+    Helper.printVerbose("results: " + response.toString());
   }
 
   public void handle(HttpExchange exchange) throws IOException {
@@ -208,7 +210,6 @@ class QueryHandler implements HttpHandler {
       switch (cgiArgs._outputFormat) {
         case TEXT:
           constructTextOutput(scoredDocs, response);
-          respondWithMsg(exchange, response.toString());
           break;
         case HTML:
           break;
@@ -223,9 +224,9 @@ class QueryHandler implements HttpHandler {
       System.out.println("start construct response");
       prf.constructResponse(response);
       System.out.println(response.toString());
-      respondWithMsg(exchange, response.toString());
-    }
 
+    }
+    respondWithMsg(exchange, response.toString());
     System.out.println("Finished query: " + cgiArgs._query);
   }
 
