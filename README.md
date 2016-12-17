@@ -15,6 +15,7 @@ curl 'localhost:25801/search?query=%E6%9D%83%E5%88%A9'
 java -cp ./class/:./lib/*:. edu.nyu.cs.cs2580.Evaluator judgement.txt rankdedResultsFor艾滋病.tsv 2
 </pre>
 
+**Evaluator:**
 When running search, ranked result for query, in this example, 艾滋病, is saved as a tsv file in root directory, in the
 format of <query><tab><url>. We also have judgement file, judgement.txt in root file. Therefore, by running the last
 command line we can evaluate our search engine using different metrics which is provided as the third argument.

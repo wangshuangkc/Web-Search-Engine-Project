@@ -51,17 +51,12 @@ class Evaluator {
   public static void main(String[] args) throws IOException {
     Map<String, DocumentRelevances> judgements =
         new HashMap<String, DocumentRelevances>();
-<<<<<<< HEAD
     Vector<String> rankedResults = new Vector<String>();
 
     SearchEngine.Check(args.length == 3, "Must provide labels and metric_id!");
     readRelevanceJudgments(args[0], judgements);
     evaluateStdin(Integer.parseInt(args[2]), judgements, args[1]);
-=======
-    SearchEngine.Check(args.length == 2, "Must provide labels and metric_id!");
-    readRelevanceJudgments(args[0], judgments);
-    evaluateStdin(Integer.parseInt(args[1]), judgments);
->>>>>>> master
+
   }
 
   public static void readRelevanceJudgments(
